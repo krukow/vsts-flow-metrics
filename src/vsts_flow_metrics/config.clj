@@ -59,10 +59,28 @@
    {:from-state "Active"
     :to-state "Closed"
     :chart {:title "Cycle time control chart"
-            :x-axis {:title "Work items"}
-            :y-axis {:title "Cycle time" :decimal-pattern "## days"}
             :width 1440
             :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Cycle time" :decimal-pattern "## days"}
+            :theme :xchart}}
+
+
+   :time-in-state
+   {:chart {:title "Time spent in state"
+
+            ;; this is optimized for features, customize to your team's needs!
+            :remove-states ["Closed" "Cancelled" "Needs More Info"
+                            "Approved" "In Spec" "Ready for Triage"
+                            "Ready For Work"] ;; Keep real states remove board states for features
+            :series-order ["New" "Need More Info" "Ready For Triage" "Ready for Work" "Active" "Blocked"]
+            :width 1440
+            :height 900
+            :overlap? true
+            :render-style :bar
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Time spent in state"
+                     :decimal-pattern "## days"}
             :theme :xchart}}})
 
 (defn config
