@@ -1,0 +1,13 @@
+#! /usr/bin/env ruby
+
+script_dir=File.dirname(__FILE__)
+flow_metrics_jar="#{script_dir}/flow-metrics.jar"
+flow_metrics_jar="#{script_dir}/target/flow-metrics.jar" unless File.exists? flow_metrics_jar
+
+raise "flow-metrics.jar not found in ./ or target/" unless File.exists? flow_metrics_jar
+
+if ENV['DEBUG']=='1'
+  exec('java', '-Dxtc.env=development', '-jar', flow_metrics_jar, *ARGV)
+else
+  exec('java', '-jar', flow_metrics_jar, *ARGV)
+end
