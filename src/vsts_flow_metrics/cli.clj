@@ -19,7 +19,8 @@
     (println "\nTools:
     show-config                         - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
     cache-work-item-changes <wiql-path> - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
-    cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to show a chart.
+    cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    time-in-state <cached-changes>      - Prints time in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
 
     ")))
 
@@ -39,9 +40,9 @@
     (System/exit 1)))
 
 
-(defn print-cycle-times
-  [cycle-times]
-  (println (json/generate-string cycle-times {:pretty true})))
+(defn print-result
+  [res]
+  (println (json/generate-string res {:pretty true})))
 
 (defn show-config
   []
@@ -81,7 +82,26 @@
         (charts/view-cycle-time cycle-times
                                 (charts/default-chart-options :cycle-time)
                                 (:chart options))
-        (print-cycle-times cycle-times)))))
+        (print-result cycle-times)))))
+
+(defn time-in-state [options args]
+  (let [[cached-file-path] args]
+    (when (nil? cached-file-path)
+      (println "You must specify a path to a cached changes file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cached-file-path))
+      (println "File does not exist:" cached-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+
+    (let [times-in-states (-> cached-file-path
+                              storage/load-state-changes-from-cache
+                              core/intervals-in-state
+                              core/days-spent-in-state)]
+      (if (:chart options)
+        (charts/view-time-in-state times-in-states
+                                   (charts/default-chart-options :time-in-state)
+                                   (:chart options))
+        (print-result times-in-states)))))
 
 (defn -main
   [& args]
@@ -113,6 +133,7 @@
         "show-config" (show-config)
         "cache-work-item-changes" (cache-work-item-changes options (rest arguments))
         "cycle-time" (cycle-time options (rest arguments))
+        "time-in-state" (time-in-state options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

@@ -30,3 +30,7 @@
         (if-let [cycle-time-hours (:hours cycle-time)]
           (/ cycle-time-hours 24.0))))
     state-intervals)))
+
+(defn days-spent-in-state
+  [state-intervals]
+  (map-values work-items/days-spent-in-states state-intervals))

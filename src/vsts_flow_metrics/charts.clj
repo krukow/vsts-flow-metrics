@@ -46,3 +46,36 @@
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))
        (c/view chart))
      chart)))
+
+
+(defn view-time-in-state
+  ([times-in-states]
+   (view-time-in-state times-in-states (default-chart-options :time-in-state)))
+  ([times-in-states options]
+   (view-time-in-state times-in-states (default-chart-options :time-in-state) nil)) ;; show graph
+  ([times-in-states options opt-filename-or-nil]
+   (let [all-states         (set (filter string? (mapcat keys (vals times-in-states))))
+         interesting-states (clojure.set/difference all-states
+                                                    (set (get options :remove-states #{})))
+         item-names (map name (keys times-in-states))
+         min-width (+ (* 50 (count item-names)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+
+         chart (c/category-chart
+                (into {}
+                  (map
+                   (fn [state]
+                     (let [time-spent
+                           (into
+                            {}
+                            (map (fn [[id time-spent-in-state]]
+                                   [(name id) (get time-spent-in-state state 0.0)])
+                                 times-in-states))]
+                       [state time-spent]))
+                   interesting-states))
+                (assoc options :width width))]
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart))
+     chart)))

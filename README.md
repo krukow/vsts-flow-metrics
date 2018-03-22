@@ -76,6 +76,27 @@ or, for example,
 ./flow-metrics cycle-time cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-2018-03-22.png
 ```
 
+### Time spent in state
+Clojure REPL
+```clojure
+(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
+     storage/load-state-changes-from-cache
+     intervals-in-state
+     days-spent-in-state
+     clojure.pprint/pprint)
+
+(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
+     storage/load-state-changes-from-cache
+     intervals-in-state
+     days-spent-in-state
+     ;;visualize cycle time
+     ;;see more options at https://github.com/hypirion/clj-xchart
+     (charts/view-time-in-state (charts/default-chart-options :time-in-state) (io/file "time.svg")))
+```
+Command line interface:
+```bash
+./flow-metrics time-in-state cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-time-in-state-2018-03-22.svg
+```
 
 # License
 Copyright © 2018 Karl Krukow

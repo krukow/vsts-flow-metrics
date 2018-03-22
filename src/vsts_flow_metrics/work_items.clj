@@ -30,7 +30,8 @@
         (fn [acc change]
           (let [fields (:fields change)
                 {next-change-date :newValue} (:System.ChangedDate fields)
-                timestamp (if (re-matches #"^9999-.+" next-change-date) ;; "9999-01-01T00:00:00Z" means "now"
+                ;; "9999-01-01T00:00:00Z" means "now"
+                timestamp (if (re-matches #"^9999-.+" next-change-date)
                             (t/now)
                             (try ;:date-time or :date-time-no-ms
                               (f/parse (f/formatters :date-time) next-change-date)
@@ -46,9 +47,9 @@
               (if new-state
                 (let [duration (t/interval last-timestamp timestamp)
                       board-state-duration (get acc last-board-state [])]
-                  (merge acc next-acc {last-board-state (conj board-state-duration duration)}))
+                  (merge acc next-acc
+                         {last-board-state (conj board-state-duration duration)}))
                 acc)
-
               next-acc)))]
 
     (let [time-spent-by-state (reduce compute-intervals {} change-records)]
@@ -59,3 +60,16 @@
          (update-in (last change-records)
                     [:fields :System.ChangedDate :newValue]
                     (constantly "9999-01-01T00:00:00Z"))))))
+
+
+(defn days-spent-in [interval-seq]
+  (/ (->> interval-seq
+          (map t/in-hours)
+          (reduce + 0))
+     24.0))
+
+(defn days-spent-in-states
+  [time-spent-data]
+  (let [states (filter string? (keys time-spent-data))]
+    (zipmap states
+            (map #(days-spent-in (get time-spent-data % [])) states))))
