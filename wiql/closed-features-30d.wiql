@@ -15,8 +15,7 @@ WHERE
         [System.TeamProject] = @project
         AND [System.AreaPath] UNDER "Mobile-Center"
         AND [System.WorkItemType] IN ("Feature")
-        AND [System.State] <> "Closed"
-        AND [System.State] <> "Cancelled"
-ASOF   '3/16/2018'
+        AND [Microsoft.VSTS.Common.ClosedDate] >= @Today - 30
+        AND [System.State] IN ("Closed")
 
 ORDER BY [System.ChangedDate] DESC
