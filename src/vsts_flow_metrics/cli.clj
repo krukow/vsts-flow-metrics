@@ -4,6 +4,7 @@
             [cheshire.core :as json]
             [vsts-flow-metrics.core :as core]
             [vsts-flow-metrics.storage :as storage]
+            [vsts-flow-metrics.charts :as charts]
             [vsts-flow-metrics.config :as cfg]
             [clojure.string :as string])
   (:gen-class :main true))
@@ -16,15 +17,20 @@
     (println "USAGE:")
     (println cli-summary)
     (println "\nTools:
-    cache-changes <wiql-path> <Project> Queries work items specified in file <wiql-path> and save in cache folder. <Project> is the VSTS instance project to query, e.g. Mobile-Center.
+    show-config                         - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
+    cache-work-item-changes <wiql-path> - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
+    cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to show a chart.
+
     ")))
 
 (def cli-options
-  [(comment ["-w" "--weekly-items WORK-ITEMS" "Commma separated list of work-item ids"
-             :parse-fn (fn [csl]
-                         (map #(Integer/parseInt %)
-                              (clojure.string/split csl #",")))])])
-
+  [["-h" "--help"  "Prints usage"]
+   ["-c" "--chart FILENAME" "Saves a chart instead of printing data to stdout (.svg, .png, ...). Note that .pdf generation is very slow for some reason for .svg is preferred for vector graphs."
+    :parse-fn (fn [fn]
+                (when (nil? fn)
+                  (println "Chart filename must be specified")
+                  (System/exit 1))
+                (io/file fn))]])
 
 (defn- check-file-exists!
   [file]
@@ -33,21 +39,49 @@
     (System/exit 1)))
 
 
-(defn cache-changes
-  [options args]
-  (let [[wiql-file-path project] args]
-    (when-not (and wiql-file-path (.exists (io/file wiql-file-path)))
+(defn print-cycle-times
+  [cycle-times]
+  (println (json/generate-string cycle-times {:pretty true})))
+
+(defn show-config
+  []
+  (println (json/generate-string (cfg/config) {:pretty true})))
+
+(defn cache-work-item-changes
+  [_ args]
+  (let [[wiql-file-path] args]
+    (when (nil? wiql-file-path)
+      (println "You must specify a path to a WIQL file.")
+      (System/exit 1))
+    (when-not (.exists (io/file wiql-file-path))
       (println "WIQL File does not exist:" wiql-file-path)
       (throw (RuntimeException. (str "File does not exist:" wiql-file-path))))
     (when-not (.isDirectory (io/file "cache"))
-      (println "Please create directory: cache")
-      (throw (RuntimeException. (str "No cache directory invalid"))))
-    (when (string/blank? project)
-      (println "Please specify a VSTS project name in the VSTS instance")
-      (throw (RuntimeException. (str "No project name specified"))))
+      (println "Please create a cache directory named: ./cache")
+      (throw (RuntimeException. (str "No cache directory: ./cache exists"))))
 
-    (println "Query and cache WIQL" wiql-file-path)
-    (storage/cache-changes "wiql/closed-features-30d.wiql" project)))
+    (println "Querying and caching changes to work items in " wiql-file-path)
+    (println "Note: this may take some time depending on the number of work items in the result..." )
+    (storage/cache-changes wiql-file-path (:project (cfg/config)) )))
+
+(defn cycle-time [options args]
+  (let [[cached-file-path] args]
+    (when (nil? cached-file-path)
+      (println "You must specify a path to a cached changes file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cached-file-path))
+      (println "File does not exist:" cached-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+
+    (let [cycle-times (-> cached-file-path
+                          storage/load-state-changes-from-cache
+                          core/intervals-in-state
+                          core/cycle-times)]
+      (if (:chart options)
+        (charts/view-cycle-time cycle-times
+                                (charts/default-chart-options :cycle-time)
+                                (:chart options))
+        (print-cycle-times cycle-times)))))
 
 (defn -main
   [& args]
@@ -63,21 +97,25 @@
                         (System/exit 0)))
 
 
-    (when (clojure.string/blank? (cfg/access-token))
-      (println "You must specify environment variable:" "VSTS_ACCESS_TOKEN")
-      (System/exit 1))
+    (when-not (or (string/blank? (first arguments))
+                  (= "show-config" (first arguments)))
+      (when (string/blank? (cfg/access-token))
+        (println "You must specify environment variable:" "VSTS_ACCESS_TOKEN")
+        (System/exit 1))
 
-    (when (clojure.string/blank? (:name (cfg/vsts-instance)))
-      (println "You must specify environment variable:" "VSTS_INSTANCE" " (for example export VSTS_INSTANCE=msmobilecenter.visualstudio.com)")
-      (System/exit 1))
-
+      (when (string/blank? (:name (cfg/vsts-instance)))
+        (println "You must specify environment variable:" "VSTS_INSTANCE" " (for example export VSTS_INSTANCE=msmobilecenter.visualstudio.com)")
+        (System/exit 1)))
 
     ;; Launch selected tool
     (try
       (case (first arguments)
-        "cache-changes" (cache-changes options (rest arguments))
+        "show-config" (show-config)
+        "cache-work-item-changes" (cache-work-item-changes options (rest arguments))
+        "cycle-time" (cycle-time options (rest arguments))
         (binding [*out* *err*]
-          (println "** No such tool:" (first arguments))
+          (when (first arguments)
+            (println "** No such tool: " (first arguments)))
           (dump-usage summary)
           (System/exit 1)))
       (catch Exception e

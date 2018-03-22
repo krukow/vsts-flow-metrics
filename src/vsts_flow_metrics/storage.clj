@@ -22,9 +22,7 @@
   (json/parse-string (slurp (io/file path)) true))
 
 (defn load-state-changes-from-cache [json-file]
-  (if (.isAbsolute (io/file json-file))
-    (load-work-item-state-changes json-file)
-    (load-work-item-state-changes (str "cache/" json-file))))
+  (load-work-item-state-changes json-file))
 
 (defn work-item-state-changes
   "Gets all state transition changes to a work item. NOTE: Makes one VSTS API call per work item."
@@ -35,9 +33,9 @@
         changes (map #(api/get-work-item-state-changes (cfg/vsts-instance) %) ids)]
     (zipmap ids changes)))
 
-(defn cache-changes [wiql-path project]
+(defn cache-changes [wiql-path]
   (let [wiql-path-base (.getName (io/file wiql-path))
         timestamp (t/now)]
     (save-work-item-state-changes
-     (work-item-state-changes wiql-path project)
+     (work-item-state-changes wiql-path (cfg/config :project))
      (str "cache/" (f/unparse file-format timestamp) "-" wiql-path-base ".json"))))
