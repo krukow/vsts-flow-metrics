@@ -9,16 +9,19 @@
 
 
 (defn- map-values
-  [m f]
-  (reduce-kv (fn [m k v]
-               (assoc m k (f v))) {} m))
+  [f m]
+  (reduce-kv (fn [m k v] (assoc m k (f v))) {} m))
 
 
-(defn cycle-time-in-days
-  [state-intervals]
+(defn intervals-in-state
+  [work-items-changes]
+  (map-values work-items/intervals-in-state work-items-changes))
+
+(defn cycle-times
+  [state-intervals from-state to-state]
   (map-values
    (fn [intervals]
-     (let [cycle-time (work-items/dev-cycle-time intervals)]
+     (let [cycle-time (work-items/cycle-time intervals from-state to-state)]
        (if-let [cycle-time-hours (:hours cycle-time)]
          (/ cycle-time-hours 24.0))))
    state-intervals))
