@@ -1,7 +1,20 @@
 # vsts-flow-metrics
 Tool for visualizing flow metrics from Visual Studio Team Services data.
 
+Inspired by [Kanban Metrics in Practice](https://www.infoq.com/presentations/kanban-metrics-sky) by [Mattia Battiston](https://www.linkedin.com/in/mattiabattiston/).
+
+The idea is to support most if not all of the metrics discussed above, as well as more we discover to be useful. Right now only a limited set of the metrics are supported. 
+
 # Usage
+
+## Compile and build
+You need to install [leiningen](https://leiningen.org/) and have a Java SDK to build.
+
+Build: `./build.sh`
+
+Run CLI after build: `./flow-metrics`
+
+Use a Clojure REPL in your development environment or `lein repl` for a basic REPL (should be enough for the examples below).
 
 ## Configuration
 
@@ -10,7 +23,6 @@ $ export VSTS_ACCESS_TOKEN=<SECRET_ACCESS_TOKEN>
 $ export VSTS_INSTANCE=msmobilecenter.visualstudio.com
 $ export VSTS_PROJECT=Mobile-Center
 ```
-
 Optionally, override settings in default configuration by specifying
 ```bash
 $ export VSTS_FLOW_CONFIG=<path-to-config.json>
@@ -21,6 +33,14 @@ To see configuration options:
 ```
 $ ./flow-metrics show-config
 ```
+
+To use the tool for what you want, you'll almost certainly need to use configuration overrides.
+
+## Interfaces
+You can use this library from a [Clojure REPL](https://clojure.org/reference/repl_and_main),
+or you can build and use the CLI tool (`./flow-metrics`). 
+
+The REPL-based approach is much more powerful, but the CLI tool combined with the configuration file (described above) will do for the primary use-cases.
 
 ### Loading and caching historic change data
 In Clojure REPL:
@@ -40,7 +60,7 @@ In Clojure REPL:
 ;; compute the time intervals that the features where in each state
 (def features-closed-30d-ints (intervals-in-state features-closed-30d))
 
-;; or using ->
+;; or using ->>
 (->> "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
      storage/load-state-changes-from-cache
      intervals-in-state
