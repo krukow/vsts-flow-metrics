@@ -105,10 +105,9 @@ Clojure REPL:
      storage/load-state-changes-from-cache
      intervals-in-state
      flow-efficiency
-     ;;visualize cycle time
+     ;;visualize flow efficiency
      ;;see more options at https://github.com/hypirion/clj-xchart
-     (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg"))
-)
+     (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg")))
 ```
 Command line interface:
 ```bash
@@ -118,7 +117,6 @@ Command line interface:
 See `show-config` to see configuration. Override `from-state` and `to-state` to change target states for responsiveness.
 
 Clojure REPL:
-
 ```clojure 
 (->>  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
       storage/load-state-changes-from-cache
