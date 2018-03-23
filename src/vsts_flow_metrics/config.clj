@@ -55,6 +55,7 @@
 
 (def default-config
   {:project (or (environment-config "VSTS_PROJECT") "Mobile-Center") ;; replace this
+
    :cycle-time
    {:from-state "Active"
     :to-state "Closed"
@@ -95,6 +96,18 @@
             :x-axis {:title "Work items"}
             :y-axis {:title "Flow efficiency"
                      :decimal-pattern "#.## %"}
+            :theme :xchart}}
+
+   :responsiveness
+   {:from-state "Ready for Work"
+    :to-state "Active"
+    :chart {:title "Responsiveness"
+            :category-title "Responsiveness"
+            :overlap? true
+            :render-style :bar
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Responsiveness in days"
+                     :decimal-pattern "## days"}
             :theme :xchart}}})
 
 (defn config

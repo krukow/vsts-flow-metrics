@@ -8,7 +8,7 @@
             [clj-time.core :as t]
             [clj-time.format :as f]))
 
-(defn- map-values
+(defn map-values
   [f m]
   (reduce-kv (fn [m k v] (assoc m k (f v))) {} m))
 
@@ -35,6 +35,7 @@
   [state-intervals]
   (map-values work-items/days-spent-in-states state-intervals))
 
+
 (defn flow-efficiency
   ([state-intervals]
    (flow-efficiency state-intervals (:flow-efficiency (cfg/config))))
@@ -43,3 +44,10 @@
     (fn [time-spent-data]
       (work-items/flow-efficiency time-spent-data active-states blocked-states))
     state-intervals)))
+
+(defn responsiveness
+  "Computes responsiveness from `from-state` to `to-state`"
+  ([state-intervals]
+   (responsiveness state-intervals (:responsiveness (cfg/config))))
+  ([state-intervals {:keys [from-state to-state]}]
+   (map-values #(work-items/responsiveness % from-state to-state) state-intervals)))

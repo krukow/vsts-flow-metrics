@@ -2,7 +2,8 @@
   (:require [com.hypirion.clj-xchart :as c]
             [incanter.stats :as istats]
             [vsts-flow-metrics.config :as cfg]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io]
+            [vsts-flow-metrics.core :as core]))
 
 
 (def default-percentiles      [0.25              0.5      0.80              0.90])
@@ -80,7 +81,6 @@
        (c/view chart))
      chart)))
 
-
 (defn view-flow-efficiency
   ([flow-efficiency]
    (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency)))
@@ -106,6 +106,35 @@
                  percentiles-graph-spec)
                 (merge {:series-order (cons title (reverse percentile-names))}
                        (assoc options :width width)))]
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart)))))
+
+(defn view-responsiveness
+  ([responsiveness]
+   (view-responsiveness responsiveness (default-chart-options :time-in-state)))
+  ([responsiveness options]
+   (view-responsiveness responsiveness (default-chart-options :time-in-state) nil)) ;; show graph
+  ([responsiveness options opt-filename-or-nil]
+   (let [title (get options :category-title)
+         item-names (map name (keys responsiveness))
+         min-width (+ (* 50 (count item-names)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+         percentiles (istats/quantile
+                      (map :in-days (remove nil? (vals responsiveness)))
+                      :probs [0.25 0.5 0.80 0.90])
+         percentiles-graph-spec (percentiles-for-graph item-names percentiles)
+         chart (c/category-chart
+                (merge
+                 {title
+                  (zipmap item-names
+                          (map :in-days (vals responsiveness)))}
+                 percentiles-graph-spec)
+                (merge {:width width
+                        :series-order [title "90th percentile" "80th percentile"
+                                       "median" "25th percentile"]} options))]
+
      (if opt-filename-or-nil
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))
        (c/view chart))
