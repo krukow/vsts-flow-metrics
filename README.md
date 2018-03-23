@@ -97,7 +97,22 @@ Command line interface:
 ```bash
 ./flow-metrics time-in-state cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-time-in-state-2018-03-22.svg
 ```
-
+### Flow efficiency
+Clojure REPL:
+```clojure
+(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
+     storage/load-state-changes-from-cache
+     intervals-in-state
+     flow-efficiency
+     ;;visualize cycle time
+     ;;see more options at https://github.com/hypirion/clj-xchart
+     (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg"))
+)
+```
+Command line interface:
+```bash
+./flow-metrics flow-efficiency cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-flow-eff-2018-03-22.svg
+```
 # License
 Copyright © 2018 Karl Krukow
 

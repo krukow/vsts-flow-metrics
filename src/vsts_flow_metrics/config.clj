@@ -76,11 +76,18 @@
             :series-order ["New" "Need More Info" "Ready For Triage" "Ready for Work" "Active" "Blocked"]
             :width 1440
             :height 900
+            :theme :xchart}}
+
+
+   :flow-efficiency
+   {:active-states ["Active"]
+    :blocked-states ["Blocked"]
+    :chart {:title "Flow efficiency"
             :overlap? true
             :render-style :bar
-            :x-axis {:title "Work items"}
-            :y-axis {:title "Time spent in state"
-                     :decimal-pattern "## days"}
+            :x-axis {:title "work items"}
+            :y-axis {:title "flow efficiency"
+                     :decimal-pattern "#.## %"}
             :theme :xchart}}})
 
 (defn config
