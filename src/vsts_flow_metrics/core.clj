@@ -34,3 +34,12 @@
 (defn days-spent-in-state
   [state-intervals]
   (map-values work-items/days-spent-in-states state-intervals))
+
+(defn flow-efficiency
+  ([state-intervals]
+   (flow-efficiency state-intervals (:flow-efficiency (cfg/config))))
+  ([state-intervals {:keys [active-states blocked-states]}]
+   (map-values
+    (fn [time-spent-data]
+      (work-items/flow-efficiency time-spent-data active-states blocked-states))
+    state-intervals)))

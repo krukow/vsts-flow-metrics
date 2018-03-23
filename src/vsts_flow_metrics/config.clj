@@ -68,7 +68,8 @@
 
    :time-in-state
    {:chart {:title "Time spent in state"
-
+            :overlap? true
+            :render-style :bar
             ;; this is optimized for features, customize to your team's needs!
             :remove-states ["Closed" "Cancelled" "Needs More Info"
                             "Approved" "In Spec" "Ready for Triage"
@@ -76,11 +77,24 @@
             :series-order ["New" "Need More Info" "Ready For Triage" "Ready for Work" "Active" "Blocked"]
             :width 1440
             :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Time in state"
+                     :decimal-pattern "##.## days"}
+
+            :theme :xchart}}
+
+
+   :flow-efficiency
+   {:active-states ["Active"]
+    :blocked-states ["Blocked"]
+    :chart {:title "Flow efficiency"
             :overlap? true
             :render-style :bar
+            :width 1440
+            :height 900
             :x-axis {:title "Work items"}
-            :y-axis {:title "Time spent in state"
-                     :decimal-pattern "## days"}
+            :y-axis {:title "Flow efficiency"
+                     :decimal-pattern "#.## %"}
             :theme :xchart}}})
 
 (defn config

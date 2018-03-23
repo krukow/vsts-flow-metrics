@@ -79,3 +79,34 @@
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))
        (c/view chart))
      chart)))
+
+
+(defn view-flow-efficiency
+  ([flow-efficiency]
+   (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency)))
+  ([flow-efficiency options]
+   (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency) nil)) ;; show graph
+  ([flow-efficiency options opt-filename-or-nil]
+   (let [item-names (map name (keys flow-efficiency))
+         title (get options :category-title "Flow efficiency")
+         percentiles (istats/quantile (remove #(zero? %)
+                                             (map :flow-efficiency (vals flow-efficiency)))
+                                     :probs [0.1 0.2 0.30 0.5 0.80 0.9])
+         percentile-names ["10th percentile" "20th percentile" "30th percentile" "median" "80th percentile" "90th percentile"]
+         percentiles-graph-spec (percentiles-for-graph item-names percentiles percentile-names)
+         min-width (+ (* 50 (count item-names)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+
+         chart (c/category-chart
+                (merge
+                 {title
+                  (zipmap (map name (keys flow-efficiency))
+                          (map :flow-efficiency (vals flow-efficiency)))}
+                 percentiles-graph-spec)
+                (merge {:series-order (cons title (reverse percentile-names))}
+                       (assoc options :width width)))]
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart))
+     chart)))

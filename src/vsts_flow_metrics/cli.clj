@@ -21,7 +21,7 @@
     cache-work-item-changes <wiql-path> - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
     cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     time-in-state <cached-changes>      - Prints time in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-
+    flow-efficiency <cached-changes>    - Prints flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     ")))
 
 (def cli-options
@@ -103,6 +103,25 @@
                                    (:chart options))
         (print-result times-in-states)))))
 
+(defn flow-efficiency [options args]
+  (let [[cached-file-path] args]
+    (when (nil? cached-file-path)
+      (println "You must specify a path to a cached changes file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cached-file-path))
+      (println "File does not exist:" cached-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+
+    (let [flow-efficiency (-> cached-file-path
+                              storage/load-state-changes-from-cache
+                              core/intervals-in-state
+                              core/flow-efficiency)]
+      (if (:chart options)
+        (charts/view-flow-efficiency flow-efficiency
+                                     (charts/default-chart-options :flow-efficiency)
+                                     (:chart options))
+        (print-result flow-efficiency)))))
+
 (defn -main
   [& args]
   (let [{:keys [options arguments summary errors]}
@@ -134,6 +153,7 @@
         "cache-work-item-changes" (cache-work-item-changes options (rest arguments))
         "cycle-time" (cycle-time options (rest arguments))
         "time-in-state" (time-in-state options (rest arguments))
+        "flow-efficiency" (flow-efficiency options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

@@ -73,3 +73,14 @@
   (let [states (filter string? (keys time-spent-data))]
     (zipmap states
             (map #(days-spent-in (get time-spent-data % [])) states))))
+
+(defn flow-efficiency [time-spent-data active-states blocked-states]
+  (let [time-spent-in-days (days-spent-in-states time-spent-data)
+        days-spent-active   (reduce + 0 (map #(get time-spent-in-days % 0.0) active-states))
+        days-spent-blocked  (reduce + 0 (map #(get time-spent-in-days % 0.0) blocked-states))]
+    {:active days-spent-active
+     :blocked days-spent-blocked
+     :flow-efficiency (if-not (zero? (+ days-spent-blocked days-spent-active))
+                        (double (/ days-spent-active
+                                   (+ days-spent-blocked days-spent-active)))
+                        1.0)}))
