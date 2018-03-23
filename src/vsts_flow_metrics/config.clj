@@ -68,7 +68,8 @@
 
    :time-in-state
    {:chart {:title "Time spent in state"
-
+            :overlap? true
+            :render-style :bar
             ;; this is optimized for features, customize to your team's needs!
             :remove-states ["Closed" "Cancelled" "Needs More Info"
                             "Approved" "In Spec" "Ready for Triage"

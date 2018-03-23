@@ -89,7 +89,7 @@
   ([flow-efficiency options opt-filename-or-nil]
    (let [item-names (map name (keys flow-efficiency))
          title (get options :category-title "Flow efficiency")
-         percentiles (istats/quantile (remove #(or (zero? %) (= 1.0 %))
+         percentiles (istats/quantile (remove #(zero? %)
                                              (map :flow-efficiency (vals flow-efficiency)))
                                      :probs [0.1 0.2 0.30 0.5 0.80 0.9])
          percentile-names ["10th percentile" "20th percentile" "30th percentile" "median" "80th percentile" "90th percentile"]
