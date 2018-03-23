@@ -37,5 +37,5 @@
   (let [wiql-path-base (.getName (io/file wiql-path))
         timestamp (t/now)]
     (save-work-item-state-changes
-     (work-item-state-changes wiql-path (cfg/config :project))
+     (work-item-state-changes wiql-path (:project (cfg/config)))
      (str "cache/" (f/unparse file-format timestamp) "-" wiql-path-base ".json"))))
