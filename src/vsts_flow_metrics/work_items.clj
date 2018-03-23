@@ -84,3 +84,23 @@
                         (double (/ days-spent-active
                                    (+ days-spent-blocked days-spent-active)))
                         1.0)}))
+
+(defn find-transitions [from to]
+  (for [f from t to
+        :when (= (t/end f)
+                 (t/start t))]
+    f))
+
+(defn responsiveness [time-spent-data from-state to-state]
+  "Computes how fast the item transitioned from `from-state` to `to-state`.
+Returns nil if the item did not transition.
+If the item transitioned multiple times, we return the first transition's duration."
+  (if-let [from (seq (get time-spent-data from-state))]
+    (if-let [to (seq (get time-spent-data to-state))]
+      (if-let [transition (first (find-transitions from to))]
+        (let [begin (t/start transition)
+              end (t/end transition)
+              duration transition]
+          {:interval duration
+           :in-days (/ (t/in-hours duration) 24.0)
+           :in-hours (t/in-hours duration)})))))

@@ -22,6 +22,8 @@
     cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     time-in-state <cached-changes>      - Prints time in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     flow-efficiency <cached-changes>    - Prints flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    responsiveness <cached-changes>     - Prints responsiveness for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+
     ")))
 
 (def cli-options
@@ -63,7 +65,8 @@
 
     (println "Querying and caching changes to work items in " wiql-file-path)
     (println "Note: this may take some time depending on the number of work items in the result..." )
-    (storage/cache-changes wiql-file-path (:project (cfg/config)) )))
+    (storage/cache-changes wiql-file-path)
+    (println "Saved work item state changes in " (.getAbsolutePath (io/file wiql-file-path)))))
 
 (defn cycle-time [options args]
   (let [[cached-file-path] args]
@@ -102,6 +105,27 @@
                                    (charts/default-chart-options :time-in-state)
                                    (:chart options))
         (print-result times-in-states)))))
+
+(defn responsiveness
+  [options args]
+  (let [[cached-file-path] args]
+    (when (nil? cached-file-path)
+      (println "You must specify a path to a cached changes file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cached-file-path))
+      (println "File does not exist:" cached-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+
+    (let [responsiveness (-> cached-file-path
+                             storage/load-state-changes-from-cache
+                             core/intervals-in-state
+                             core/responsiveness)]
+      (if (:chart options)
+        (charts/view-responsiveness responsiveness
+                                   (charts/default-chart-options :responsiveness)
+                                   (:chart options))
+        (print-result
+         (core/map-values :in-days responsiveness))))))
 
 (defn flow-efficiency [options args]
   (let [[cached-file-path] args]
@@ -154,6 +178,8 @@
         "cycle-time" (cycle-time options (rest arguments))
         "time-in-state" (time-in-state options (rest arguments))
         "flow-efficiency" (flow-efficiency options (rest arguments))
+        "responsiveness" (responsiveness options (rest arguments))
+
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

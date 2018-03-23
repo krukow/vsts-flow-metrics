@@ -14,11 +14,9 @@
 (defn save-work-item-state-changes
   [work-item-state-changes output-path]
   (spit output-path (json/generate-string work-item-state-changes {:pretty true}))
-  (println "Saved work item state changes in " (.getAbsolutePath (io/file output-path)))
   (.getAbsolutePath (io/file output-path)))
 
 (defn- load-work-item-state-changes [path]
-  (println "Loading work item state changes from " (.getAbsolutePath (io/file path)))
   (json/parse-string (slurp (io/file path)) true))
 
 (defn load-state-changes-from-cache [json-file]
@@ -37,5 +35,5 @@
   (let [wiql-path-base (.getName (io/file wiql-path))
         timestamp (t/now)]
     (save-work-item-state-changes
-     (work-item-state-changes wiql-path (cfg/config :project))
+     (work-item-state-changes wiql-path (:project (cfg/config)))
      (str "cache/" (f/unparse file-format timestamp) "-" wiql-path-base ".json"))))
