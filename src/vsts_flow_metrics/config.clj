@@ -27,7 +27,10 @@
 
 (defn access-token
   []
-  (environment-config "VSTS_ACCESS_TOKEN"))
+  (let [token (environment-config "VSTS_ACCESS_TOKEN")]
+    (when (nil? token)
+      (RuntimeException. "Please ensure environment variable VSTS_ACCESS_TOKEN is set"))
+    token))
 
 (def http-options
   {:basic-auth (str ":" (access-token))
