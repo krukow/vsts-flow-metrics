@@ -69,6 +69,15 @@ In Clojure REPL
 ```
 Command line interface:
 ```bash
+./flow-metrics cycle-time cache/2018-03-22T04:34-closed-features-30d.wiql.json
+{
+  "33126" : 28.916666666666668,
+  "31330" : 31.458333333333332,
+  "33717" : 9.125,
+  "31464" : 19.375,
+  ...
+}
+
 ./flow-metrics cycle-time cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-2018-03-22.svg
 ```
 or, for example,
@@ -96,6 +105,18 @@ Clojure REPL
 Command line interface:
 ```bash
 ./flow-metrics time-in-state cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-time-in-state-2018-03-22.svg
+
+./flow-metrics time-in-state cache/2018-03-22T04:34-closed-features-30d.wiql.json
+{
+  "33126" : {
+    "New" : 0.7916666666666666,
+    "Active" : 27.75,
+    "Ready For Triage" : 1.0416666666666667,
+    "Ready For Work" : 0.0,
+    "Closed" : 21.75
+  },
+  ...
+}
 ```
 
 ### Flow efficiency
@@ -112,6 +133,16 @@ Clojure REPL:
 Command line interface:
 ```bash
 ./flow-metrics flow-efficiency cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-flow-eff-2018-03-22.svg
+
+./flow-metrics flow-efficiency cache/2018-03-22T04:34-closed-features-30d.wiql.json
+{
+  "33504" : {
+    "active" : 16.791666666666668,
+    "blocked" : 14.166666666666666,
+    "flow-efficiency" : 0.5423956931359354
+  },
+...
+}
 ```
 ### Responsiveness 
 See `show-config` to see configuration. Override `from-state` and `to-state` to change target states for responsiveness.
@@ -137,7 +168,6 @@ Clojure REPL:
 Command line interface:
 ```bash
 ./flow-metrics responsiveness cache/2018-03-22T04:34-closed-features-30d.wiql.json
-Loading work item state changes from  /Users/krukow/code/vsts-flow-metrics/cache/2018-03-22T04:34-closed-features-30d.wiql.json
 {
   "31330" : 6.25,
   "31464" : 21.375,
