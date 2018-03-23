@@ -77,6 +77,10 @@
             :series-order ["New" "Need More Info" "Ready For Triage" "Ready for Work" "Active" "Blocked"]
             :width 1440
             :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Time in state"
+                     :decimal-pattern "##.## days"}
+
             :theme :xchart}}
 
 
@@ -86,8 +90,10 @@
     :chart {:title "Flow efficiency"
             :overlap? true
             :render-style :bar
-            :x-axis {:title "work items"}
-            :y-axis {:title "flow efficiency"
+            :width 1440
+            :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Flow efficiency"
                      :decimal-pattern "#.## %"}
             :theme :xchart}}})
 
