@@ -65,7 +65,7 @@
 
     (println "Querying and caching changes to work items in " wiql-file-path)
     (println "Note: this may take some time depending on the number of work items in the result..." )
-    (storage/cache-changes wiql-file-path (:project (cfg/config)) )))
+    (storage/cache-changes wiql-file-path)))
 
 (defn cycle-time [options args]
   (let [[cached-file-path] args]
