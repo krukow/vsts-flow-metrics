@@ -2,8 +2,7 @@
   (:require [com.hypirion.clj-xchart :as c]
             [incanter.stats :as istats]
             [vsts-flow-metrics.config :as cfg]
-            [clojure.java.io :as io]
-            [vsts-flow-metrics.core :as core]))
+            [clojure.java.io :as io]))
 
 
 (def default-percentiles      [0.25              0.5      0.80              0.90])
@@ -112,9 +111,9 @@
 
 (defn view-responsiveness
   ([responsiveness]
-   (view-responsiveness responsiveness (default-chart-options :time-in-state)))
+   (view-responsiveness responsiveness (default-chart-options :responsiveness)))
   ([responsiveness options]
-   (view-responsiveness responsiveness (default-chart-options :time-in-state) nil)) ;; show graph
+   (view-responsiveness responsiveness (default-chart-options :responsiveness) nil)) ;; show graph
   ([responsiveness options opt-filename-or-nil]
    (let [title (get options :category-title)
          item-names (map name (keys responsiveness))
