@@ -138,3 +138,29 @@
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))
        (c/view chart))
      chart)))
+
+(defn view-lead-time-distribution
+  ([lead-time-dist]
+   (view-lead-time-distribution lead-time-dist (default-chart-options :lead-time-distribution)))
+  ([lead-time-dist options]
+   (view-lead-time-distribution lead-time-dist (default-chart-options :lead-time-distribution) nil)) ;; show graph
+  ([lead-time-dist options opt-filename-or-nil]
+   (let [title (get options :category-title)
+         item-names (range (apply min (keys lead-time-dist))
+                           (inc (apply max (keys lead-time-dist))))
+         min-width (+ (* 50 (count item-names)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+         charted-lead-time-dist (zipmap item-names
+                                        (map
+                                         (fn [x] (get lead-time-dist x 0))
+                                         item-names))
+         chart (c/category-chart
+                {title charted-lead-time-dist}
+                (merge {:title "Lead time distribution"
+                        :width width} options))]
+
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart))
+     chart)))
