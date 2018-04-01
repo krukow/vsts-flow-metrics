@@ -8,8 +8,11 @@
 
 
 (def file-format (f/formatters :date-hour-minute))
-
 (def as-of-format (f/formatter "MM/dd/yyyy"))
+
+(defn generate-wiql-as-of [wiql-path interesting-time]
+   (format (slurp wiql-path) (f/unparse as-of-format interesting-time)))
+
 
 (defn save-work-item-state-changes
   [work-item-state-changes output-path]
@@ -37,3 +40,20 @@
     (save-work-item-state-changes
      (work-item-state-changes wiql-path (:project (cfg/config)))
      (str "cache/" (f/unparse file-format timestamp) "-" wiql-path-base ".json"))))
+
+
+(defn work-items-as-of [wiql-path interesting-times]
+  (->> interesting-times
+
+       (map (fn [time]
+              (let [work-items-ids-result (api/query-work-items
+                                           (cfg/vsts-instance)
+                                           (:project (cfg/config))
+                                           (generate-wiql-as-of wiql-path time))
+                    work-item-ids (map :id (:workItems work-items-ids-result))
+                    work-items (api/get-work-items (cfg/vsts-instance)
+                                                   work-item-ids
+                                                   time)]
+                [time (:value work-items)])))
+
+       (into {})))

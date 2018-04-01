@@ -124,6 +124,19 @@
                      :decimal-pattern "##"}
             :theme :xchart}}
 
+   :historic-queues
+   {:ago 30 ;; days
+    :step 3 ;; day increments
+    :chart {:title "Queue by state"
+            :remove-states ["Closed" "Cancelled"]
+            :series-order nil
+            :stacked? true
+            :render-style :bar
+            :x-axis {:title "Time (ago)"}
+            :y-axis {:title "Number in state"
+                     :decimal-pattern "##"}
+            :theme :xchart}}
+
    })
 
 (defn config
