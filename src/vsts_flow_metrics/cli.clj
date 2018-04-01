@@ -17,12 +17,13 @@
     (println "USAGE:")
     (println cli-summary)
     (println "\nTools:
-    show-config                         - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
-    cache-work-item-changes <wiql-path> - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
-    cycle-time <cached-changes>         - Prints cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    time-in-state <cached-changes>      - Prints time in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    flow-efficiency <cached-changes>    - Prints flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    responsiveness <cached-changes>     - Prints responsiveness for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    show-config                              - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
+    cache-work-item-changes <wiql-path>      - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
+    cycle-time <cached-changes>              - Cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    time-in-state <cached-changes>           - Times in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    flow-efficiency <cached-changes>         - Flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    responsiveness <cached-changes>          - Responsiveness for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    lead-time-distribution <cached-changes>  - Lead time distribution for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
 
     ")))
 
@@ -146,6 +147,27 @@
                                      (:chart options))
         (print-result flow-efficiency)))))
 
+(defn lead-time-distribution
+  [options args]
+  (let [[cached-file-path] args]
+    (when (nil? cached-file-path)
+      (println "You must specify a path to a cached changes file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cached-file-path))
+      (println "File does not exist:" cached-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+
+    (let [lead-time-distribution (-> cached-file-path
+                                     storage/load-state-changes-from-cache
+                                     core/intervals-in-state
+                                     core/lead-time-distribution)]
+      (if (:chart options)
+        (charts/view-lead-time-distribution
+         lead-time-distribution
+         (charts/default-chart-options :lead-time-distribution)
+         (:chart options))
+        (print-result lead-time-distribution)))))
+
 (defn -main
   [& args]
   (let [{:keys [options arguments summary errors]}
@@ -179,7 +201,7 @@
         "time-in-state" (time-in-state options (rest arguments))
         "flow-efficiency" (flow-efficiency options (rest arguments))
         "responsiveness" (responsiveness options (rest arguments))
-
+        "lead-time-distribution" (lead-time-distribution options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

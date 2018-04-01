@@ -111,7 +111,20 @@
             :x-axis {:title "Work items"}
             :y-axis {:title "Responsiveness in days"
                      :decimal-pattern "## days"}
-            :theme :xchart}}})
+            :theme :xchart}}
+
+
+   :lead-time-distribution
+   {:from-state "Active"
+    :to-state   "Closed"
+    :chart {:title "Lead Time Distribution"
+            :category-title "Backlog items"
+            :x-axis {:title "Lead time in days"}
+            :y-axis {:title "Number of items"
+                     :decimal-pattern "##"}
+            :theme :xchart}}
+
+   })
 
 (defn config
   []

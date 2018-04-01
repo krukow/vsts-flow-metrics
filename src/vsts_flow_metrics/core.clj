@@ -51,3 +51,11 @@
    (responsiveness state-intervals (:responsiveness (cfg/config))))
   ([state-intervals {:keys [from-state to-state]}]
    (map-values #(work-items/responsiveness % from-state to-state) state-intervals)))
+
+(defn lead-time-distribution
+  ([state-intervals]
+   (lead-time-distribution state-intervals (:lead-time-distribution (cfg/config))))
+  ([state-intervals options]
+   (let [cycle-times (cycle-times state-intervals options)
+         lead-time-dist (frequencies (map #(Math/round %) (remove nil? (vals cycle-times))))]
+     lead-time-dist)))
