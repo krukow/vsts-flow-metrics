@@ -104,3 +104,7 @@ If the item transitioned multiple times, we return the first transition's durati
           {:interval duration
            :in-days (/ (t/in-hours duration) 24.0)
            :in-hours (t/in-hours duration)})))))
+
+(defn work-items-states
+  [work-items]
+  (map #(get-in % [:fields :System.State]) work-items))

@@ -2,6 +2,7 @@
   (:require [com.hypirion.clj-xchart :as c]
             [incanter.stats :as istats]
             [vsts-flow-metrics.config :as cfg]
+            [clj-time.coerce :as coerce]
             [clojure.java.io :as io]))
 
 
@@ -159,6 +160,45 @@
                 {title charted-lead-time-dist}
                 (merge {:title "Lead time distribution"
                         :width width} options))]
+
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart))
+     chart)))
+
+(defn view-historic-queues
+  ([state-dist]
+   (view-historic-queues state-dist (default-chart-options :historic-queues)))
+  ([state-dist options]
+   (view-historic-queues state-dist (default-chart-options :historic-queues) nil)) ;; show graph
+  ([state-dist options opt-filename-or-nil]
+   (let [title (get options :category-title)
+         all-states (into #{} (mapcat (fn [[k v]] (keys v)) state-dist))
+         interesting-states (or
+                             (:series-order options)
+                             (clojure.set/difference all-states
+                                                     (set (get options :remove-states #{}))))
+
+         date-keys-sorted (sort (keys state-dist))
+         item-names (map (fn [x] (str (coerce/to-local-date x))) date-keys-sorted)
+         keynames (map (fn [n name] (str (format "%02d" n) "-" name))
+                       (range 1 (inc (count item-names)))
+                       item-names)
+         min-width (+ (* 150 (count keynames)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+
+         chart-options (merge {:width width} options)
+         chart (c/category-chart
+                (into {} (map
+                          (fn [state]
+                            [state (into {} (map
+                                             (fn [k name]
+                                               [name (get (get state-dist k)
+                                                          state)])
+                                             date-keys-sorted keynames))])
+                          interesting-states))
+                chart-options)]
 
      (if opt-filename-or-nil
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))

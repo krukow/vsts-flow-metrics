@@ -24,6 +24,7 @@
     flow-efficiency <cached-changes>         - Flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     responsiveness <cached-changes>          - Responsiveness for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
     lead-time-distribution <cached-changes>  - Lead time distribution for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
+    historic-queues <wiql-template>          - Queues over time for <cached-changes> for wiql template (see wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
 
     ")))
 
@@ -168,6 +169,27 @@
          (:chart options))
         (print-result lead-time-distribution)))))
 
+
+(defn historic-queues
+  [options args]
+  (let [[template-file-path] args]
+    (when (nil? template-file-path)
+      (println "You must specify a path to a wiql template file.")
+      (System/exit 1))
+    (when-not (.exists (io/file template-file-path))
+      (println "File does not exist:" template-file-path)
+      (throw (RuntimeException. (str "File does not exist:" template-file-path))))
+
+    (let [times (core/interesting-times (:historic-queues (cfg/config)))
+          as-of (storage/work-items-as-of template-file-path times)
+          state-distribution (core/work-items-state-distribution as-of)]
+      (if (:chart options)
+        (charts/view-historic-queues
+         state-distribution
+         (charts/default-chart-options :historic-queues)
+         (:chart options))
+        (print-result state-distribution)))))
+
 (defn -main
   [& args]
   (let [{:keys [options arguments summary errors]}
@@ -202,6 +224,7 @@
         "flow-efficiency" (flow-efficiency options (rest arguments))
         "responsiveness" (responsiveness options (rest arguments))
         "lead-time-distribution" (lead-time-distribution options (rest arguments))
+        "historic-queues" (historic-queues options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

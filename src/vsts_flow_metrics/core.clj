@@ -59,3 +59,17 @@
    (let [cycle-times (cycle-times state-intervals options)
          lead-time-dist (frequencies (map #(Math/round %) (remove nil? (vals cycle-times))))]
      lead-time-dist)))
+
+(defn work-items-state-distribution
+  [work-items-as-of]
+  (into {}
+        (map (fn [[k v]]
+               (let [states (work-items/work-items-states v)]
+                 [k (frequencies (remove nil? states))]))
+             work-items-as-of)))
+
+(defn interesting-times
+  [cfg]
+  (let [ago (:ago cfg)
+        step (:step cfg)]
+    (map (fn [ago] (t/minus (t/now) (t/days ago))) (range 0 (inc ago) step))))
