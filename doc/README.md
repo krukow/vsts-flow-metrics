@@ -18,7 +18,7 @@ The next section shows how to compute a set of work items, including all state c
 ## `vsts-flow-metrics` functionality
 Most of the `vsts-flow-metrics` tool behaviour is configured using a configuration file. You can show the current configuration by running
 
-`./flow-metrics show-config` or calling `(vsts-flow-metrics.config/config)` in a Clojure REPL. The configuration is defined by merging the [default configuration](https://github.com/krukow/vsts-flow-metrics/blob/master/src/vsts_flow_metrics/config.clj#L59-L88) with an optional override configuration file specified by environment variable `VSTS_FLOW_CONFIG`.
+`./flow-metrics show-config` or calling `(vsts-flow-metrics.config/config)` in a Clojure REPL. The configuration is defined by merging the [default configuration](https://github.com/krukow/vsts-flow-metrics/blob/master/src/vsts_flow_metrics/config.clj#L59) with an optional override configuration file specified by environment variable `VSTS_FLOW_CONFIG`.
 
 For example `{"project":"Mobile-Center"}` is a default setting which should be changed except for unlikely event of targeting a VSTS project named "Mobile-Center". For more override examples, see below.
 
@@ -58,7 +58,7 @@ In Clojure REPL:
      clojure.pprint/pprint)
 ```
 ### Cycle time metric
-Cycle-time computes time to transition from one state (`from-state`) to another (`to-state`) for a set of work items. The `from-state` defaults to "Active" and the `to-state` defaults to "Closed". The `from-state` and `to-state` can be controlled using the configuration file. For example, with a configuration file 
+Cycle-time computes time to transition from one state (`from-state`) to another (`to-state`) for a set of work items. The `from-state` defaults to "Active" and the `to-state` defaults to "Closed". The `from-state` and `to-state` can be controlled using the configuration file. For example, with a configuration file
 ```
 {"project":"Mobile-Center", 
  "cycle-time": {
@@ -66,7 +66,7 @@ Cycle-time computes time to transition from one state (`from-state`) to another 
      "to-state":   "Closed"}}
 ```
 
-you'd compute work item cycle times from state "Ready for Work" to "Closed". 
+you'd compute work item cycle times from state "Ready for Work" to "Closed".
 
 Command line interface:
 ```bash
