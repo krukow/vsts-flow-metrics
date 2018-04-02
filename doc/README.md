@@ -23,7 +23,7 @@ Most of the `vsts-flow-metrics` tool behaviour is configured using a configurati
 For example `{"project":"Mobile-Center"}` is a default setting which should be changed except for unlikely event of targeting a VSTS project named "Mobile-Center". For more override examples, see below.
 
 ### Loading and caching historic change data
-Make sure you `VSTS_FLOW_CONFIG` specifies the correct "project" and that you have a WIQL query that targets the set of work items you want to cache changes for. Here's an [example WIQL file](https://github.com/krukow/vsts-flow-metrics/blob/master/wiql/closed-features-30d.wiql).
+Make sure you have an environment variable `VSTS_FLOW_CONFIG` specifying a path to a JSON file. The config file should at least define the correct "project". In addition you must have a WIQL query that targets the set of work items you want to cache changes for. Here's an [example WIQL file](https://github.com/krukow/vsts-flow-metrics/blob/master/wiql/closed-features-30d.wiql).
 
 Command line interface:
 ```
