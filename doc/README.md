@@ -42,12 +42,12 @@ In Clojure REPL:
         (storage/load-state-changes-from-cache
           (storage/cache-changes "wiql/closed-features-30d.wiql")))
 
-;; in the future you can just look in cache and find the timestamped json file, e.g.,
+;; in the future you can load changes from cache:
 (def features-closed-30d
         (storage/load-state-changes-from-cache
           "cache/2018-03-22T03:18-closed-features-30d.wiql.json"))
 
-;; compute the time intervals that the features where in each state
+;; compute the time-intervals spent in each state
 (def features-closed-30d-ints (intervals-in-state features-closed-30d))
 
 ;; or using ->>
