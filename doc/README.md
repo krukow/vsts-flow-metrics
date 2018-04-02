@@ -170,7 +170,7 @@ Clojure REPL:
 ```
 
 ### Responsiveness 
-The `responsiveness` tool computes how long work items take to transition from one state (`from-state`, defaults to "Ready for Work") to another (`to-state`, defaults to "Active"). Responsiveness computes how long time is 'stuck' in a state, or how "responsiv" the team processing `from-state` is. 
+The `responsiveness` tool computes how long work items take to transition from one state (`from-state`, defaults to "Ready for Work") to another (`to-state`, defaults to "Active"). Responsiveness computes how long time work is 'stuck' in a state, or how "responsive" the team processing `from-state` is.
 
 See `show-config` to see configuration. Override `from-state` and `to-state` to change target states for responsiveness.
 
@@ -294,4 +294,9 @@ CLI:
     "Ready For Triage" : 20,
     "Ready for Triage" : 1
   },
+```
+
+To chart:
+```
+./flow-metrics historic-queues wiql/features-as-of-template.wiql --chart as-of-30days-step3.svg
 ```
