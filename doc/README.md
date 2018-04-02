@@ -94,22 +94,8 @@ or, for example,
 
 
 ### Time spent in state
-Clojure REPL
-```clojure
-(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
-     storage/load-state-changes-from-cache
-     intervals-in-state
-     days-spent-in-state
-     clojure.pprint/pprint)
+The `time-in-state` tool computes how much time in days each work item spent in each state. 
 
-(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
-     storage/load-state-changes-from-cache
-     intervals-in-state
-     days-spent-in-state
-     ;;visualize time in state
-     ;;see more options at https://github.com/hypirion/clj-xchart
-     (charts/view-time-in-state (charts/default-chart-options :time-in-state) (io/file "time.svg")))
-```
 Command line interface:
 ```bash
 ./flow-metrics time-in-state cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-time-in-state-2018-03-22.svg
@@ -127,17 +113,36 @@ Command line interface:
 }
 ```
 
-### Flow efficiency
-Clojure REPL:
+Clojure REPL
 ```clojure
 (->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
      storage/load-state-changes-from-cache
      intervals-in-state
-     flow-efficiency
-     ;;visualize flow efficiency
+     days-spent-in-state
+     clojure.pprint/pprint)
+
+(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
+     storage/load-state-changes-from-cache
+     intervals-in-state
+     days-spent-in-state
+     ;;visualize time in state
      ;;see more options at https://github.com/hypirion/clj-xchart
-     (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg")))
+     (charts/view-time-in-state (charts/default-chart-options :time-in-state) (io/file "time.svg")))
 ```
+
+### Flow efficiency
+The `flow-efficiency` tool computes how much time was spent in "active" states relative to "blocked" states. Think of "active" states as "in development" and "blocked" states as "waiting for X" (e.g. waiting for deployment, waiting for design, waiting for review). Flow efficiency tells you something about how much time work items spend in queues waiting for people relative to time spent having someone actively working on them. Most kanban-inspired processes prefer to optimize flow-efficiency over resource utilization (i.e. prefer to keep work flowing over keeping everyone busy all the time).
+
+Use the config file to specify which states you consider 'active' states and which you consider blocked 'blocked'. The default is:
+
+```
+{"flow-efficiency" : {
+    "active-states" : [ "Active" ],
+    "blocked-states" : [ "Blocked" ]}}
+```
+
+Before computing flow efficiency, it's a good idea to inspect `time-in-state` to see which states to consider "blocked" and which to consider "active" on the data set you're computing metrics for.
+
 Command line interface:
 ```bash
 ./flow-metrics flow-efficiency cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-flow-eff-2018-03-22.svg
@@ -152,8 +157,37 @@ Command line interface:
 ...
 }
 ```
+
+Clojure REPL:
+```clojure
+(->  "cache/2018-03-22T03:18-closed-features-30d.wiql.json"
+     storage/load-state-changes-from-cache
+     intervals-in-state
+     flow-efficiency
+     ;;visualize flow efficiency
+     ;;see more options at https://github.com/hypirion/clj-xchart
+     (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg")))
+```
+
 ### Responsiveness 
+The `responsiveness` tool computes how long work items take to transition from one state (`from-state`, defaults to "Ready for Work") to another (`to-state`, defaults to "Active"). Responsiveness computes how long time is 'stuck' in a state, or how "responsiv" the team processing `from-state` is. 
+
 See `show-config` to see configuration. Override `from-state` and `to-state` to change target states for responsiveness.
+
+Command line interface:
+```bash
+./flow-metrics responsiveness cache/2018-03-22T04:34-closed-features-30d.wiql.json
+{
+  "31330" : 6.25,
+  "31464" : 21.375,
+  "33716" : null,
+  "32327" : 4.583333333333333,
+  "30339" : 13.708333333333334,
+  ...
+}
+
+./flow-metrics responsiveness cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-resp-30d-time-in-state-2018-03-22.svg
+```
 
 Clojure REPL:
 ```clojure 
@@ -173,17 +207,91 @@ Clojure REPL:
      (charts/view-responsiveness (charts/default-chart-options :responsiveness)))
 ```
 
-Command line interface:
-```bash
-./flow-metrics responsiveness cache/2018-03-22T04:34-closed-features-30d.wiql.json
+### Lead time distribution
+Lead time distribution or cycle-time distribution computes how many work items to 0, 1, 2, 3, ... days to "complete". More technically, how many items transitioned from `from-state` to `to-state` in 0, 1, 2, ... days. See `show-config` to see configuration. Override `from-state` and `to-state` to change target states for `lead-time-distribution`.
+
+CLI:
+```
+./flow-metrics lead-time-distribution cache/2018-04-02T19:19-closed-features-30d.wiql.json --chart lead-time-distribution-features-closed-30d-2018-04-02T19:19.svg
+```
+
+```
+./flow-metrics lead-time-distribution cache/2018-04-02T19:19-closed-features-30d.wiql.json
 {
-  "31330" : 6.25,
-  "31464" : 21.375,
-  "33716" : null,
-  "32327" : 4.583333333333333,
-  "30339" : 13.708333333333334,
+  "0" : 1, //1 item completed in 0 days
+  "7" : 1, //1 item completed in 7 days
+  "20" : 1,
+  "27" : 3, // 3 items completed in 27 days
+  "1" : 1,
+  "15" : 2,
+  "21" : 2,
   ...
 }
+```
 
-./flow-metrics responsiveness cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-resp-30d-time-in-state-2018-03-22.svg
+### Historic queues
+The `historic-queues` tool is a bit different than the other tools. It is not based on a set of work items and their state transitions. Instead, it computes at certain points in time, how many work items where in which state. 
+
+The `historic-queues` tool uses a WIQL template, e.g.: 
+```
+SELECT
+        [System.Id],
+        [System.Rev],
+        [System.WorkItemType],
+        [System.Title],
+        [System.State],
+        [System.AreaPath],
+        [System.IterationPath],
+        [System.Description],
+        [System.AssignedTo],
+        [Microsoft.VSTS.Common.ClosedDate],
+        [System.Tags]
+FROM workitems
+WHERE
+        [System.TeamProject] = @project
+        AND [System.AreaPath] UNDER "Mobile-Center"
+        AND [System.WorkItemType] IN ("Feature")
+        AND [System.State] <> "Closed"
+        AND [System.State] <> "Cancelled"
+ASOF   '%s'
+
+ORDER BY [System.ChangedDate] DESC
+```
+
+It evaluates the query at various points in time in the past (the `ASOF` date). How far back in time and how may samples to query is determined by the configuration:
+
+```
+ {"historic-queues" : {
+    "ago" : 30,
+    "step" : 3}}
+```
+
+This configuration combined with the above WIQL template samples for each 3 days in the last 30 days how many features where in each state.
+
+Note: this doesn't use a cached set of changes and so the computation is slower as it needs to make many calls to the VSTS API.
+
+CLI:
+```
+./flow-metrics historic-queues wiql/features-as-of-template.wiql
+{
+  "2018-04-02T20:27:24.611Z" : {
+    "Ready for Work" : 20,
+    "Need More Info" : 6,
+    "New" : 129,
+    "Ready For Triage" : 8,
+    "Active" : 33,
+    "Closed" : 1,
+    "Blocked" : 2
+  },
+  "2018-03-30T20:27:24.611Z" : {
+    "Need More Info" : 4,
+    "New" : 131,
+    "Closed" : 6,
+    "Active" : 30,
+    "Blocked" : 2,
+    "Cancelled" : 6,
+    "Ready for Work" : 16,
+    "Ready For Triage" : 20,
+    "Ready for Triage" : 1
+  },
 ```
