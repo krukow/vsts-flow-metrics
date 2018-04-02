@@ -90,9 +90,7 @@ or, for example,
 ./flow-metrics cycle-time cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-2018-03-22.png
 ```
 
-It looks like this:
-
-
+[An example looks like this](https://s3-eu-west-1.amazonaws.com/flow-metrics-examples/features-closed-30d-2018-04-02T19-19.svg) (to view, your browser must support .svg format).
 
 
 ### Time spent in state
