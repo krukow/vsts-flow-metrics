@@ -90,7 +90,7 @@
 
    :flow-efficiency
    {:active-states ["Active"]
-    :blocked-states ["Blocked"]
+    :blocked-states ["Blocked" "In Review"]
     :chart {:title "Flow efficiency"
             :overlap? true
             :render-style :bar
