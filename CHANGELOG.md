@@ -1,8 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## [Unreleased]
+## [v1.0.2]
 ### Added 
-- initial CLI interface for basic flow metrics
-- README with basic usage and configuration instructions
+- VSTS field selection, e.g. "cycle-time": {"field": "System.BoardColumn"}: "System.BoardColumn" or (default) "System.State"
 
+- Support Doing/Done columns in Kanban boards
+
+- Correct default states for flow-efficiency
+
+- More robust algorithm for computing time intervals spent in state
+
+- Better documentation
