@@ -19,6 +19,54 @@
          :days (t/in-days interval)
          :hours (t/in-hours interval)}))))
 
+(defn- update-state
+  [intervals-record new-state new-timestamp]
+  (let [last-state (:last-state intervals-record)
+        last-timestamp (:last-timestamp intervals-record)
+        updated-record (-> intervals-record
+                           (assoc :last-state new-state)
+                           (assoc :last-timestamp new-timestamp))]
+    (when (nil? last-timestamp)
+      (throw (RuntimeException. (str "Last timestamp is nil " intervals-record))))
+    (if new-state
+      (if last-state
+        (assoc updated-record last-state (conj (get intervals-record last-state [])
+                                               (t/interval last-timestamp new-timestamp)))
+        updated-record)
+      intervals-record)))
+
+(defn- update-board-state
+  [intervals-record new-state new-done-state new-timestamp]
+  (let [last-state (:last-state intervals-record)
+        last-timestamp (:last-timestamp intervals-record)
+        updated-state (update-state intervals-record new-state new-timestamp)]
+
+    (if (and (not (nil? new-done-state)) ;; done/not done bit set
+             (or (nil? new-state) ;; there must be no state change (nil new state)
+                 (= last-state new-state))) ;; there must be no state change (old and new state same)
+      ;; column flip (state remains and done bit is flipped)
+      (cond (true? new-done-state)
+            ;; switched out of Doing into Done
+            (let [last-done-state-name (str last-state " - Doing")]
+              (assoc updated-state last-done-state-name
+                     (conj (get updated-state last-done-state-name [])
+                           (t/interval last-timestamp new-timestamp))))
+
+            (false? new-done-state)
+            (let [last-done-state-name (str last-state " - Done")]
+              ;; switched out of Done into Doing
+              (assoc updated-state last-done-state-name
+                     (conj (get updated-state last-done-state-name [])
+                           (t/interval last-timestamp new-timestamp))))
+
+            :else
+            (throw (RuntimeException.
+                    (str "Unexpected value for :System.BoardColumnDone: " new-done-state))))
+
+
+      ;; This is not a column flip, just return regular state change
+      updated-state)))
+
 (defn intervals-in-state
   "Maps a set of change records for a work item (i.e. VSTS updates)
    to a map which maps states to a vector of intervals (the times where the work item
@@ -26,40 +74,75 @@
   Inserts an implicit interval from when the item's last transition to now.
   "
   [change-records]
-  (let [compute-intervals
+  (let [parse-time-stamp (fn [date-s]
+                           (if (re-matches #"^9999-.+" date-s)
+                            (t/now)
+                            (try ;:date-time or :date-time-no-ms
+                              (f/parse (f/formatters :date-time) date-s)
+                              (catch java.lang.IllegalArgumentException e
+                                (f/parse (f/formatters :date-time-no-ms) date-s)))))
+
+        compute-intervals
         (fn [acc change]
           (let [fields (:fields change)
                 {next-change-date :newValue} (:System.ChangedDate fields)
                 ;; "9999-01-01T00:00:00Z" means "now"
-                timestamp (if (re-matches #"^9999-.+" next-change-date)
-                            (t/now)
-                            (try ;:date-time or :date-time-no-ms
-                              (f/parse (f/formatters :date-time) next-change-date)
-                              (catch java.lang.IllegalArgumentException e
-                                (f/parse (f/formatters :date-time-no-ms) next-change-date))))
-                last-board-state (:last-board-state acc)
-                last-timestamp (:last-timestamp acc)
-                {new-board-state :newValue}   (:System.State fields)
-                {new-board-column :newValue}  (:System.BoardColumn fields)
-                new-state (or new-board-column new-board-state)
-                next-acc  {:last-board-state new-state :last-timestamp timestamp}]
-            (if last-timestamp ;; i.e. this is not the first change made to the item
-              (if new-state
-                (let [duration (t/interval last-timestamp timestamp)
-                      board-state-duration (get acc last-board-state [])]
-                  (merge acc next-acc
-                         {last-board-state (conj board-state-duration duration)}))
-                acc)
-              next-acc)))]
+                timestamp (parse-time-stamp next-change-date)
 
-    (let [time-spent-by-state (reduce compute-intervals {} change-records)]
-      ;; create an extra synthetic event to represent now
-      ;; this ensures we calculate time spent in last known state
-      ;; until (t/now)
-      (compute-intervals time-spent-by-state
-         (update-in (last change-records)
-                    [:fields :System.ChangedDate :newValue]
-                    (constantly "9999-01-01T00:00:00Z"))))))
+                system-state (get acc :System.State           {})
+                board-state  (get acc :System.BoardColumn     {})
+
+
+                {new-state :newValue}        (:System.State fields)
+                {new-board-state :newValue}  (:System.BoardColumn fields)
+                {new-done-state :newValue}   (:System.BoardColumnDone fields)
+                ;{new-board-lane :newValue}   (:System.BoardLane fields)
+
+                next-system-state (update-state system-state new-state timestamp)
+                next-board-state  (update-board-state board-state new-board-state new-done-state timestamp)]
+            (merge acc
+                   {:System.State next-system-state}
+                   {:System.BoardColumn next-board-state})))]
+
+    (let [first-change (first change-records)
+          changes (rest change-records)
+          first-time-stamp (parse-time-stamp
+                            (get-in first-change [:fields :System.ChangedDate :newValue]))
+          initial-state {:System.State {:last-timestamp first-time-stamp
+                                        :last-state
+                                        (get-in first-change
+                                                [:fields :System.State :newValue])}
+
+                         :System.BoardColumn {:last-timestamp first-time-stamp
+                                              :last-state
+                                              (get-in first-change
+                                                      [:fields :System.BoardColumn :newValue])}}
+          time-spent-by-state (reduce compute-intervals initial-state changes)
+
+          ;; create an extra synthetic event to represent now
+          ;; this ensures we calculate time spent in last known state
+          ;; until (t/now)
+          synthetic-auto-transition {:fields
+                                     {:System.ChangedDate {:newValue "9999-01-01T00:00:00Z"}
+                                      :System.State       {:newValue
+                                                           (get-in
+                                                            time-spent-by-state
+                                                            [:System.State :last-state])}
+                                      :System.BoardColumn {:newValue
+                                                           (get-in
+                                                            time-spent-by-state
+                                                            [:System.BoardColumn :last-state])}
+                                      :System.BoardLane   {:newValue
+                                                           (get-in
+                                                            time-spent-by-state
+                                                            [:System.BoardLane :last-state])}
+                                      :System.BoardColumnDone
+                                      {:newValue
+                                       (get-in
+                                        time-spent-by-state
+                                        [:System.BoardColumnDone :last-state])}}}]
+
+      (compute-intervals time-spent-by-state synthetic-auto-transition))))
 
 
 (defn days-spent-in [interval-seq]
@@ -106,5 +189,5 @@ If the item transitioned multiple times, we return the first transition's durati
            :in-hours (t/in-hours duration)})))))
 
 (defn work-items-states
-  [work-items]
-  (map #(get-in % [:fields :System.State]) work-items))
+  [work-items state]
+  (map #(get-in % [:fields state]) work-items))

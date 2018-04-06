@@ -23,34 +23,41 @@
   defaults to the configuration :cycle-time :from-state / :to-state."
   ([state-intervals]
    (cycle-times state-intervals (:cycle-time (cfg/config))))
-  ([state-intervals {:keys [from-state to-state]}]
+  ([state-intervals {:keys [from-state to-state field]}]
    (map-values
     (fn [intervals]
-      (let [cycle-time (work-items/cycle-time intervals from-state to-state)]
+      (let [cycle-time (work-items/cycle-time (get intervals (keyword field))
+                                              from-state to-state)]
         (if-let [cycle-time-hours (:hours cycle-time)]
           (/ cycle-time-hours 24.0))))
     state-intervals)))
 
 (defn days-spent-in-state
   [state-intervals]
-  (map-values work-items/days-spent-in-states state-intervals))
+  (let [field (cfg/vsts-field :time-in-state)
+        field-state-intervals (map-values #(get % field) state-intervals)]
+    (map-values work-items/days-spent-in-states field-state-intervals)))
 
 
 (defn flow-efficiency
   ([state-intervals]
    (flow-efficiency state-intervals (:flow-efficiency (cfg/config))))
-  ([state-intervals {:keys [active-states blocked-states]}]
+  ([state-intervals {:keys [active-states blocked-states field]}]
    (map-values
     (fn [time-spent-data]
-      (work-items/flow-efficiency time-spent-data active-states blocked-states))
+      (work-items/flow-efficiency (get time-spent-data (keyword field))
+                                  active-states blocked-states))
     state-intervals)))
 
 (defn responsiveness
   "Computes responsiveness from `from-state` to `to-state`"
   ([state-intervals]
    (responsiveness state-intervals (:responsiveness (cfg/config))))
-  ([state-intervals {:keys [from-state to-state]}]
-   (map-values #(work-items/responsiveness % from-state to-state) state-intervals)))
+  ([state-intervals {:keys [from-state to-state field]}]
+   (map-values
+    (fn [time-spent-data] (work-items/responsiveness (get time-spent-data (keyword field))
+                                                    from-state to-state))
+    state-intervals)))
 
 (defn lead-time-distribution
   ([state-intervals]
@@ -62,11 +69,12 @@
 
 (defn work-items-state-distribution
   [work-items-as-of]
-  (into {}
-        (map (fn [[k v]]
-               (let [states (work-items/work-items-states v)]
-                 [k (frequencies (remove nil? states))]))
-             work-items-as-of)))
+  (let [field (cfg/vsts-field :historic-queues)]
+    (into {}
+          (map (fn [[k v]]
+                 (let [states (work-items/work-items-states v field)]
+                   [k (frequencies (remove nil? states))]))
+               work-items-as-of))))
 
 (defn interesting-times
   [cfg]
