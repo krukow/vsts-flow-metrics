@@ -44,7 +44,6 @@
   {:name (environment-config "VSTS_INSTANCE")
    :http-options http-options})
 
-
 (defn deep-merge
   "Merges maps of similar shapes (used for default overriding config files).
   The default must have all the keys present."
@@ -62,6 +61,7 @@
    :cycle-time
    {:from-state "Active"
     :to-state "Closed"
+    :field :System.State ;;or :System.BoardColumn
     :chart {:title "Cycle time control chart"
             :width 1440
             :height 900
@@ -71,7 +71,8 @@
 
 
    :time-in-state
-   {:chart {:title "Time spent in state"
+   {:field :System.State ;; or :System.BoardColumn
+    :chart {:title "Time spent in state"
             :overlap? true
             :render-style :bar
             ;; this is optimized for features, customize to your team's needs!
@@ -90,7 +91,8 @@
 
    :flow-efficiency
    {:active-states ["Active"]
-    :blocked-states ["Blocked"]
+    :blocked-states ["Blocked" "In Review"]
+    :field :System.State ;;or :System.BoardColumn
     :chart {:title "Flow efficiency"
             :overlap? true
             :render-style :bar
@@ -104,6 +106,7 @@
    :responsiveness
    {:from-state "Ready for Work"
     :to-state "Active"
+    :field :System.State ;;or :System.BoardColumn
     :chart {:title "Responsiveness"
             :category-title "Responsiveness"
             :overlap? true
@@ -117,6 +120,7 @@
    :lead-time-distribution
    {:from-state "Active"
     :to-state   "Closed"
+    :field :System.State ;; or :System.BoardColumn
     :chart {:title "Lead Time Distribution"
             :category-title "Backlog items"
             :x-axis {:title "Lead time in days"}
@@ -127,6 +131,7 @@
    :historic-queues
    {:ago 30 ;; days
     :step 3 ;; day increments
+    :field :System.State ;; or :System.BoardColumn
     :chart {:title "Queue by state"
             :remove-states ["Closed" "Cancelled"]
             :series-order nil
@@ -142,3 +147,7 @@
 (defn config
   []
   (deep-merge default-config (load-config-from-file (config-file))))
+
+(defn vsts-field [key]
+  (let [field (get-in (config) [key :field])]
+    (keyword field)))

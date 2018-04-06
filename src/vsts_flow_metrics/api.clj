@@ -61,5 +61,7 @@
     (filter
      (fn [{fields :fields}]
        (or (:System.State fields)
-           (:System.BoardColumn fields)))
+           (:System.BoardColumn fields)
+           (:System.BoardLane fields)
+           (:System.BoardColumnDone fields)))
      (:value item-updates))))

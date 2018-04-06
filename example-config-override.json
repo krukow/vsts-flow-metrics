@@ -1,0 +1,5 @@
+{"project":"My-Project",
+ "cycle-time": {"field": "System.BoardColumn"},
+ "flow-efficiency" : {
+     "active-states" : [ "Active" ],
+     "blocked-states" : [ "Blocked", "In Review", "Deploying" ]}}
