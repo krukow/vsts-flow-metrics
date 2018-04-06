@@ -62,6 +62,31 @@ To see configuration options:
 $ ./flow-metrics show-config
 ```
 
+For example:
+```bash
+cat example-config-override.json
+{"project":"My-Project",
+ "cycle-time": {"field": "System.BoardColumn"},
+ "flow-efficiency" : {
+     "active-states" : [ "Active" ],
+     "blocked-states" : [ "Blocked", "In Review", "Deploying" ]}}
+
+$ VSTS_FLOW_CONFIG=example-config-override.json ./flow-metrics show-config
+{
+  "project" : "My-Project",
+  "cycle-time" : {
+    "from-state" : "Active",
+    "to-state" : "Closed",
+    "field" : "System.BoardColumn",
+    ...
+  }
+  "flow-efficiency" : {
+    "active-states" : [ "Active" ],
+    "blocked-states" : [ "Blocked", "In Review", "Deploying" ],
+    ...
+    }
+}
+```
 To use the tool for what you want, you'll almost certainly need to use configuration overrides.
 
 # Usage and How-To
