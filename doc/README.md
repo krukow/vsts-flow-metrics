@@ -25,6 +25,9 @@ For example `{"project":"Mobile-Center"}` is a default setting which should be c
 ### Loading and caching historic change data
 Make sure you have an environment variable `VSTS_FLOW_CONFIG` specifying a path to a JSON file. The config file should at least define the correct "project". In addition you must have a WIQL query that targets the set of work items you want to cache changes for. Here's an [example WIQL file](https://github.com/krukow/vsts-flow-metrics/blob/master/wiql/closed-features-30d.wiql).
 
+
+Finally, make a directory called `cache`: `mkdir cache`.
+
 Command line interface:
 ```
 $ ./flow-metrics cache-work-item-changes wiql/closed-features-30d.wiql
