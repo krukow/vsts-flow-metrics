@@ -11,6 +11,14 @@
       nil
       env)))
 
+(def ^:dynamic *debug-http* false)
+
+(defn debug-from-env?
+  []
+  (let [env (System/getenv "DEBUG")]
+    (if (or *debug-http* (= "1" env))
+      true
+      false)))
 
 (defn- load-config-from-file
   [path]
@@ -130,6 +138,30 @@
                      :decimal-pattern "##"}
             :theme :xchart}}
 
+   :pull-requests
+   {:repository "appcenter"
+    :team-name  "Kasper-Team"}
+
+   :pull-request-cycle-time
+   {:closed-after "2018-04-01"
+    ;; Note: if :pull-requests :team-name is nil/null, we compute for all completed pull requests
+    :cycle-time-unit :hours ;; :days, :hours, :mins
+    :chart {:title "PR Cycle time control chart"
+            :width 1440
+            :height 900
+            :x-axis {:title "Pull Request"}
+            :y-axis {:title "Cycle time" :decimal-pattern "##.##"}
+            :theme :xchart}}
+
+   :pull-request-responsiveness
+   {:closed-after "2018-04-01"
+    :responsiveness-time-unit :hours ;; :days, :hours, :mins
+    :chart {:title "PR Responsiveness"
+            :width 1440
+            :height 900
+            :x-axis {:title "Pull Request"}
+            :y-axis {:title "Responsiveness" :decimal-pattern "##.##"}
+            :theme :xchart}}
    })
 
 (defn config
@@ -148,6 +180,17 @@
    :accept :json})
 
 (defn vsts-instance
+  ([]
+   {:name (:instance (config))
+    :http-options (assoc http-options :debug (debug-from-env?))})
+  ([config]
+   {:name (:instance config)
+    :http-options (assoc http-options :debug (debug-from-env?))}))
+
+(defn vsts-project
   []
-  {:name (:instance (config))
-   :http-options http-options})
+  (:project (config)))
+
+(defn vsts-repository
+  []
+  (:repository (:pull-requests (config))))

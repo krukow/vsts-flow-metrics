@@ -6,7 +6,10 @@
             [vsts-flow-metrics.storage :as storage]
             [vsts-flow-metrics.charts :as charts]
             [vsts-flow-metrics.config :as cfg]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [clj-time.core :as t]
+            [clj-time.format :as f]
+            [vsts-flow-metrics.api :as api])
   (:gen-class :main true))
 
 
@@ -25,7 +28,8 @@
     responsiveness <cache/wiql>              - Responsiveness for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
     lead-time-distribution <cache/wiql>      - Lead time distribution for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
     historic-queues <wiql-template>          - Queues over time for <wiql-template>, a wiql template (see e.g., wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
-
+    pull-request-cycle-time                  - Cycle time for pull requests (optionally, use configuration to target a specific team). Use the --chart option to save a chart.
+    pull-request-responsiveness              - Time to first vote in pull request reviews for a team. Team is configured using the configuration: :pull-requests :team-name. Use the --chart option to save a chart.
     ")))
 
 (def cli-options
@@ -200,6 +204,58 @@
          (:chart options))
         (print-result state-distribution)))))
 
+(defn pull-request-cycle-time
+  [options args]
+  (let [closed-after-s (get-in (cfg/config) [:pull-request-cycle-time :closed-after])
+        closed-after (f/parse (f/formatter :date) closed-after-s)
+        configured-team-name (get-in (cfg/config) [:pull-requests :team-name])
+        pr-unit (keyword (get-in (cfg/config) [:pull-request-cycle-time :cycle-time-unit]))
+        team (if configured-team-name
+               (api/get-team-by-name (cfg/vsts-instance) (cfg/vsts-project) configured-team-name))
+        repo (api/get-repository-by-name (cfg/vsts-instance) (cfg/vsts-project)
+                                         (get-in (cfg/config) [:pull-requests :repository]))
+
+        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" team)
+        filtered-prs (filter #(t/after? (:closedDate %) closed-after) pull-requests)
+        pr-cycle-time (core/pull-requests-cycle-time filtered-prs)]
+
+    (when-not (contains? #{:days :hours :mins} pr-unit)
+      (throw (RuntimeException. "Configuration :pull-request-cycle-time :cycle-time-unit must be days, hours or mins")))
+
+    (if (:chart options)
+      (charts/view-pull-request-cycle-time
+       (core/map-values #(get % pr-unit 0.0) pr-cycle-time)
+       (charts/default-chart-options :pull-request-cycle-time)
+       (:chart options))
+      (print-result (core/map-values pr-unit pr-cycle-time)))))
+
+(defn pull-request-responsiveness
+  [options args]
+  (let [closed-after-s (get-in (cfg/config) [:pull-request-responsiveness :closed-after])
+        closed-after (f/parse (f/formatter :date) closed-after-s)
+        configured-team-name (get-in (cfg/config) [:pull-requests :team-name])
+        pr-unit (keyword (get-in (cfg/config) [:pull-request-responsiveness :responsiveness-time-unit]))
+        team (if configured-team-name
+               (api/get-team-by-name (cfg/vsts-instance) (cfg/vsts-project) configured-team-name))
+        repo (api/get-repository-by-name (cfg/vsts-instance) (cfg/vsts-project)
+                                         (get-in (cfg/config) [:pull-requests :repository]))
+
+        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" team)
+        active-pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "active" team)
+        filtered-prs (concat (filter #(t/after? (:closedDate %) closed-after) pull-requests)
+                             active-pull-requests)
+        pr-responsiveness (core/pull-requests-first-vote-responsiveness filtered-prs team)]
+
+    (when-not (contains? #{:days :hours :mins} pr-unit)
+      (throw (RuntimeException. "Configuration :pull-request-responsiveness :responsiveness-time-unit must be days, hours or mins")))
+
+    (if (:chart options)
+      (charts/view-pull-request-cycle-time
+       pr-responsiveness
+       (charts/default-chart-options :pull-request-responsiveness)
+       (:chart options))
+      (print-result pr-responsiveness))))
+
 (defn -main
   [& args]
   (let [{:keys [options arguments summary errors]}
@@ -235,6 +291,8 @@
         "responsiveness" (responsiveness options (rest arguments))
         "lead-time-distribution" (lead-time-distribution options (rest arguments))
         "historic-queues" (historic-queues options (rest arguments))
+        "pull-request-cycle-time" (pull-request-cycle-time options (rest arguments))
+        "pull-request-responsiveness" (pull-request-responsiveness options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))

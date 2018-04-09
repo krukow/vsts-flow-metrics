@@ -1,7 +1,8 @@
 (ns vsts-flow-metrics.work-items
   (:require [clojure.string :as s]
             [clj-time.core :as t]
-            [clj-time.format :as f]))
+            [clj-time.format :as f]
+            [vsts-flow-metrics.utils :as utils]))
 
 
 (defn cycle-time
@@ -74,20 +75,12 @@
   Inserts an implicit interval from when the item's last transition to now.
   "
   [change-records]
-  (let [parse-time-stamp (fn [date-s]
-                           (if (re-matches #"^9999-.+" date-s)
-                            (t/now)
-                            (try ;:date-time or :date-time-no-ms
-                              (f/parse (f/formatters :date-time) date-s)
-                              (catch java.lang.IllegalArgumentException e
-                                (f/parse (f/formatters :date-time-no-ms) date-s)))))
-
-        compute-intervals
+  (let [compute-intervals
         (fn [acc change]
           (let [fields (:fields change)
                 {next-change-date :newValue} (:System.ChangedDate fields)
                 ;; "9999-01-01T00:00:00Z" means "now"
-                timestamp (parse-time-stamp next-change-date)
+                timestamp (utils/parse-time-stamp next-change-date)
 
                 system-state (get acc :System.State           {})
                 board-state  (get acc :System.BoardColumn     {})
@@ -106,7 +99,7 @@
 
     (let [first-change (first change-records)
           changes (rest change-records)
-          first-time-stamp (parse-time-stamp
+          first-time-stamp (utils/parse-time-stamp
                             (get-in first-change [:fields :System.ChangedDate :newValue]))
           initial-state {:System.State {:last-timestamp first-time-stamp
                                         :last-state
