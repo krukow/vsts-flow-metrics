@@ -20,6 +20,37 @@ export PATH=$JAVA_HOME/bin:$PATH
 
 ## Download and run a released build
 
+### Quick start for the brave
+On OS X (or linux) you can run the `./go.sh` bash script. It will download the latest release. It's quick and dirty.
+```
+$ ./go.sh
+Fetching latest release
+https://github.com/krukow/vsts-flow-metrics/releases/download/v1.0.3/flow-metrics-v1.0.3.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   614    0   614    0     0   1017      0 --:--:-- --:--:-- --:--:--  1018
+100 40.6M  100 40.6M    0     0  1424k      0  0:00:29  0:00:29 --:--:-- 2440k
+Unzipping flow-metrics-latest.zip
+Archive:  flow-metrics-latest.zip
+replace flow-metrics? [y]es, [n]o, [A]ll, [N]one, [r]ename: y
+  inflating: flow-metrics
+  inflating: target/flow-metrics.jar
+Sanity checking: show-config
+{
+  "project" : "Mobile-Center",
+  "cycle-time" : {
+    "from-state" : "Active",
+    "to-state" : "Closed",
+    "field" : "System.State",
+    ...
+  }
+}
+```
+
+Once you've downloaded. See the [Configuration section](https://github.com/krukow/vsts-flow-metrics/#configuration) below.
+
+### Normal download
+
 1. Download a release from the [releases page](https://github.com/krukow/vsts-flow-metrics/releases)
 2. Unzip the `.zip` archive, e.g., `unzip flow-metrics-1.0.0.zip` it contains a bash shell script (`./flow-metrics`) which invokes `java -jar target/flow-metrics.jar`. If your system doesn't support bash you can simply run this command instead. 
 
