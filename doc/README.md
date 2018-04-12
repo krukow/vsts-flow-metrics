@@ -11,9 +11,11 @@ Most of the functionality is accessed by first performing a VSTS Work Item Query
 
 For example, a WIQL query for [features closed in the last 30 days](/wiql/closed-features-30d.wiql) might be a set of work items that you'd want to compute the `cycle-time` metric for.
 
-Since the tool will query not only the work items, but also all state changes made, it typically makes many calls to the VSTS REST API (which unfortunately doesn't support batch operations for fetching work item changes). For that reason, we've built in a caching function. Most of the metrics will be computed off of a cached set of work items with their entire history of state changes.
+Since the tool will query not only the work items, but also all state changes made, it typically makes many calls to the VSTS REST API (which unfortunately doesn't support batch operations for fetching work item changes). For that reason, we've built in a caching function. Most of the metrics can be computed off of a cached set of work items with their entire history of state changes.
 
 The next section shows how to compute a set of work items, including all state changes, and cache the result on the file system.
+
+Alternatively, if you're just trying the tool or only computing a single metric off a set of work items, you can skip the caching step and provide an input .wiql file instead.
 
 ## `vsts-flow-metrics` functionality
 Most of the `vsts-flow-metrics` tool behaviour is configured using a configuration file. You can show the current configuration by running
@@ -24,9 +26,6 @@ For example `{"project":"Mobile-Center"}` is a default setting which should be c
 
 ### Loading and caching historic change data
 Make sure you have an environment variable `VSTS_FLOW_CONFIG` specifying a path to a JSON file. The config file should at least define the correct "project". In addition you must have a WIQL query that targets the set of work items you want to cache changes for. Here's an [example WIQL file](https://github.com/krukow/vsts-flow-metrics/blob/master/wiql/closed-features-30d.wiql).
-
-
-Finally, make a directory called `cache`: `mkdir cache`.
 
 Command line interface:
 ```
@@ -41,6 +40,8 @@ In Clojure REPL:
 (in-ns 'vsts-flow-metrics.core)
 
 ;; cache and save all updates to features closed the last 30 days
+;; Remember: ensure the environment variables are set in the REPL env
+;; VSTS_ACCESS_TOKEN, VSTS_INSTANCE, VSTS_PROJECT
 (def features-closed-30d
         (storage/load-state-changes-from-cache
           (storage/cache-changes "wiql/closed-features-30d.wiql")))
@@ -81,6 +82,9 @@ Command line interface:
   "31464" : 19.375,
   ...
 }
+
+## Alternatively: don't use cache
+./flow-metrics cycle-time wiql/closed-features-30d.wiql
 ```
 The key is the work item id, and the value is the cycle time in days.
 
@@ -95,6 +99,28 @@ or, for example,
 
 [An example looks like this](https://s3-eu-west-1.amazonaws.com/flow-metrics-examples/features-closed-30d-2018-04-02T19-19.svg) (to view, your browser must support .svg format).
 
+Alternatively, if you're not using a cache you can do:
+```
+./flow-metrics cycle-time wiql/closed-features-30d.wiql --chart closed.svg
+```
+
+Clojure REPL
+```clojure
+(->>  "cache/2018-04-06T07:11-closed-features-30d.wiql.json"
+      storage/load-state-changes-from-cache
+      intervals-in-state
+      cycle-times
+      (take 10)
+      clojure.pprint/pprint)
+
+(->  "wiql/closed-features-30d.wiql"
+       (storage/work-item-state-changes (:project (cfg/config)))
+       intervals-in-state
+       cycle-times
+       ;; cycle time in state
+       ;;see more options at https://github.com/hypirion/clj-xchart
+       (charts/view-cycle-time (charts/default-chart-options :cycle-time)))
+```
 
 ### Time spent in state
 The `time-in-state` tool computes how much time in days each work item spent in each state. 
