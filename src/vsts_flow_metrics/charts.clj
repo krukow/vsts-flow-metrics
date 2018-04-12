@@ -29,7 +29,8 @@
   ([cycle-time options]
    (view-cycle-time cycle-time (default-chart-options :cycle-time) nil)) ;; show graph
   ([cycle-time options opt-filename-or-nil]
-   (let [category-title (get options :category-title "Cycle Time")
+   (let [options (update-in options [:theme] keyword)
+         category-title (get options :category-title "Cycle Time")
          item-names (map name (keys cycle-time))
          min-width (+ (* 50 (count item-names)) 500)
          width (or (:width options) min-width)
@@ -55,7 +56,8 @@
   ([times-in-states options]
    (view-time-in-state times-in-states (default-chart-options :time-in-state) nil)) ;; show graph
   ([times-in-states options opt-filename-or-nil]
-   (let [all-states         (set (filter string? (mapcat keys (vals times-in-states))))
+   (let [options (update-in options [:theme] keyword)
+         all-states         (set (filter string? (mapcat keys (vals times-in-states))))
          interesting-states (clojure.set/difference all-states
                                                     (set (get options :remove-states #{})))
          item-names (map name (keys times-in-states))
@@ -87,7 +89,8 @@
   ([flow-efficiency options]
    (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency) nil)) ;; show graph
   ([flow-efficiency options opt-filename-or-nil]
-   (let [item-names (map name (keys flow-efficiency))
+   (let [options (update-in options [:theme] keyword)
+         item-names (map name (keys flow-efficiency))
          title (get options :category-title "Flow efficiency")
          percentiles (istats/quantile (remove #(zero? %)
                                              (map :flow-efficiency (vals flow-efficiency)))
@@ -116,7 +119,8 @@
   ([responsiveness options]
    (view-responsiveness responsiveness (default-chart-options :responsiveness) nil)) ;; show graph
   ([responsiveness options opt-filename-or-nil]
-   (let [title (get options :category-title)
+   (let [options (update-in options [:theme] keyword)
+         title (get options :category-title)
          item-names (map name (keys responsiveness))
          min-width (+ (* 50 (count item-names)) 500)
          width (or (:width options) min-width)
@@ -146,7 +150,8 @@
   ([lead-time-dist options]
    (view-lead-time-distribution lead-time-dist (default-chart-options :lead-time-distribution) nil)) ;; show graph
   ([lead-time-dist options opt-filename-or-nil]
-   (let [title (get options :category-title)
+   (let [options (update-in options [:theme] keyword)
+         title (get options :category-title)
          item-names (range (apply min (keys lead-time-dist))
                            (inc (apply max (keys lead-time-dist))))
          min-width (+ (* 50 (count item-names)) 500)
@@ -172,7 +177,8 @@
   ([state-dist options]
    (view-historic-queues state-dist (default-chart-options :historic-queues) nil)) ;; show graph
   ([state-dist options opt-filename-or-nil]
-   (let [title (get options :category-title)
+   (let [options (update-in options [:theme] keyword)
+         title (get options :category-title)
          all-states (into #{} (mapcat (fn [[k v]] (keys v)) state-dist))
          interesting-states (or
                              (:series-order options)

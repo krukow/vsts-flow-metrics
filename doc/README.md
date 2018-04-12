@@ -11,6 +11,19 @@ Most of the functionality is accessed by first performing a VSTS Work Item Query
 
 For example, a WIQL query for [features closed in the last 30 days](/wiql/closed-features-30d.wiql) might be a set of work items that you'd want to compute the `cycle-time` metric for.
 
+If you want to zoom in on a specific team/area-path use something like this WIQL clause
+
+```
+...
+WHERE
+        [System.TeamProject] = @project
+        AND [System.AreaPath] UNDER "Mobile-Center\My-Team"
+        AND [System.WorkItemType] IN ("User Story")
+        AND [Microsoft.VSTS.Common.ClosedDate] >= @Today - 30
+        AND [System.State] IN ("Closed")
+```
+
+### Caching work item changes
 Since the tool will query not only the work items, but also all state changes made, it typically makes many calls to the VSTS REST API (which unfortunately doesn't support batch operations for fetching work item changes). For that reason, we've built in a caching function. Most of the metrics can be computed off of a cached set of work items with their entire history of state changes.
 
 The next section shows how to compute a set of work items, including all state changes, and cache the result on the file system.
@@ -20,9 +33,9 @@ Alternatively, if you're just trying the tool or only computing a single metric 
 ## `vsts-flow-metrics` functionality
 Most of the `vsts-flow-metrics` tool behaviour is configured using a configuration file. You can show the current configuration by running
 
-`./flow-metrics show-config` or calling `(vsts-flow-metrics.config/config)` in a Clojure REPL. The configuration is defined by merging the [default configuration](https://github.com/krukow/vsts-flow-metrics/blob/master/src/vsts_flow_metrics/config.clj#L59) with an optional override configuration file specified by environment variable `VSTS_FLOW_CONFIG`.
+`./flow-metrics show-config` or calling `(vsts-flow-metrics.config/config)` in a Clojure REPL. The configuration is defined by merging the [default configuration](https://github.com/krukow/vsts-flow-metrics/blob/master/src/vsts_flow_metrics/config.clj) with an optional override configuration file specified by environment variable `VSTS_FLOW_CONFIG`.
 
-For example `{"project":"Mobile-Center"}` is a default setting which should be changed except for unlikely event of targeting a VSTS project named "Mobile-Center". For more override examples, see below.
+For override examples, see below.
 
 ### Loading and caching historic change data
 Make sure you have an environment variable `VSTS_FLOW_CONFIG` specifying a path to a JSON file. The config file should at least define the correct "project". In addition you must have a WIQL query that targets the set of work items you want to cache changes for. Here's an [example WIQL file](https://github.com/krukow/vsts-flow-metrics/blob/master/wiql/closed-features-30d.wiql).
