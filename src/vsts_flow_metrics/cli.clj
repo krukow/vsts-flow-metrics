@@ -19,12 +19,12 @@
     (println "\nTools:
     show-config                              - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
     cache-work-item-changes <wiql-path>      - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
-    cycle-time <cached-changes>              - Cycle times for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    time-in-state <cached-changes>           - Times in states for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    flow-efficiency <cached-changes>         - Flow efficiency for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    responsiveness <cached-changes>          - Responsiveness for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    lead-time-distribution <cached-changes>  - Lead time distribution for a set of work-items cached in path <cached-changes>. Use the --chart option to save a chart.
-    historic-queues <wiql-template>          - Queues over time for <cached-changes> for wiql template (see wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
+    cycle-time <cache/wiql>                  - Cycle times for a set of work-items defined by a .wiql file or a .json cache at path <cache/wiql>. Use the --chart option to save a chart.
+    time-in-state <cache/wiql>               - Times in states for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    flow-efficiency <cache/wiql>             - Flow efficiency for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    responsiveness <cache/wiql>              - Responsiveness for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    lead-time-distribution <cache/wiql>      - Lead time distribution for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    historic-queues <wiql-template>          - Queues over time for <wiql-template>, a wiql template (see e.g., wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
 
     ")))
 
@@ -69,17 +69,32 @@
     (println "Note: this may take some time depending on the number of work items in the result..." )
     (println "Saved work item state changes in " (storage/cache-changes wiql-file-path))))
 
-(defn cycle-time [options args]
-  (let [[cached-file-path] args]
-    (when (nil? cached-file-path)
-      (println "You must specify a path to a cached changes file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cached-file-path))
-      (println "File does not exist:" cached-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+(defn load-state-changes
+  "Can either take a cached .json file or an uncached .wiql query"
+  [file-path]
+  (let [target-file (io/file file-path)
+        lower-case-basename (.toLowerCase (.getName target-file))]
+    (cond
+      (.endsWith lower-case-basename ".json") ;; assume cache
+      (storage/load-state-changes-from-cache target-file)
 
-    (let [cycle-times (-> cached-file-path
-                          storage/load-state-changes-from-cache
+      (.endsWith lower-case-basename ".wiql") ;; assume WIQL
+      (storage/work-item-state-changes target-file (:project (cfg/config)))
+
+      :else
+      (throw (RuntimeException. (str "File: " lower-case-basename " should have a .json / .wiql extension. Use .json for cached work item changes and .wiql for WIQL query files."))))))
+
+
+(defn cycle-time [options args]
+  (let [[cache-or-wiql-file-path] args]
+    (when (nil? cache-or-wiql-file-path)
+      (println "You must specify a path to a cache or wiql file.")
+      (System/exit 1))
+    (when-not (.exists (io/file cache-or-wiql-file-path))
+      (println "File does not exist:" cache-or-wiql-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+
+    (let [cycle-times (-> (load-state-changes cache-or-wiql-file-path)
                           core/intervals-in-state
                           core/cycle-times)]
       (if (:chart options)
@@ -89,16 +104,15 @@
         (print-result cycle-times)))))
 
 (defn time-in-state [options args]
-  (let [[cached-file-path] args]
-    (when (nil? cached-file-path)
-      (println "You must specify a path to a cached changes file.")
+  (let [[cache-or-wiql-file-path] args]
+    (when (nil? cache-or-wiql-file-path)
+      (println "You must specify a path to a cache or wiql file.")
       (System/exit 1))
-    (when-not (.exists (io/file cached-file-path))
-      (println "File does not exist:" cached-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+    (when-not (.exists (io/file cache-or-wiql-file-path))
+      (println "File does not exist:" cache-or-wiql-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
 
-    (let [times-in-states (-> cached-file-path
-                              storage/load-state-changes-from-cache
+    (let [times-in-states (-> (load-state-changes cache-or-wiql-file-path)
                               core/intervals-in-state
                               core/days-spent-in-state)]
       (if (:chart options)
@@ -109,16 +123,15 @@
 
 (defn responsiveness
   [options args]
-  (let [[cached-file-path] args]
-    (when (nil? cached-file-path)
-      (println "You must specify a path to a cached changes file.")
+  (let [[cache-or-wiql-file-path] args]
+    (when (nil? cache-or-wiql-file-path)
+      (println "You must specify a path to a cache or wiql file.")
       (System/exit 1))
-    (when-not (.exists (io/file cached-file-path))
-      (println "File does not exist:" cached-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+    (when-not (.exists (io/file cache-or-wiql-file-path))
+      (println "File does not exist:" cache-or-wiql-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
 
-    (let [responsiveness (-> cached-file-path
-                             storage/load-state-changes-from-cache
+    (let [responsiveness (-> (load-state-changes cache-or-wiql-file-path)
                              core/intervals-in-state
                              core/responsiveness)]
       (if (:chart options)
@@ -129,16 +142,15 @@
          (core/map-values :in-days responsiveness))))))
 
 (defn flow-efficiency [options args]
-  (let [[cached-file-path] args]
-    (when (nil? cached-file-path)
-      (println "You must specify a path to a cached changes file.")
+  (let [[cache-or-wiql-file-path] args]
+    (when (nil? cache-or-wiql-file-path)
+      (println "You must specify a path to a cache or wiql file.")
       (System/exit 1))
-    (when-not (.exists (io/file cached-file-path))
-      (println "File does not exist:" cached-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+    (when-not (.exists (io/file cache-or-wiql-file-path))
+      (println "File does not exist:" cache-or-wiql-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
 
-    (let [flow-efficiency (-> cached-file-path
-                              storage/load-state-changes-from-cache
+    (let [flow-efficiency (-> (load-state-changes cache-or-wiql-file-path)
                               core/intervals-in-state
                               core/flow-efficiency)]
       (if (:chart options)
@@ -149,16 +161,15 @@
 
 (defn lead-time-distribution
   [options args]
-  (let [[cached-file-path] args]
-    (when (nil? cached-file-path)
-      (println "You must specify a path to a cached changes file.")
+  (let [[cache-or-wiql-file-path] args]
+    (when (nil? cache-or-wiql-file-path)
+      (println "You must specify a path to a cache or wiql file.")
       (System/exit 1))
-    (when-not (.exists (io/file cached-file-path))
-      (println "File does not exist:" cached-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cached-file-path))))
+    (when-not (.exists (io/file cache-or-wiql-file-path))
+      (println "File does not exist:" cache-or-wiql-file-path)
+      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
 
-    (let [lead-time-distribution (-> cached-file-path
-                                     storage/load-state-changes-from-cache
+    (let [lead-time-distribution (-> (load-state-changes cache-or-wiql-file-path)
                                      core/intervals-in-state
                                      core/lead-time-distribution)]
       (if (:chart options)

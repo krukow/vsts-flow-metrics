@@ -32,7 +32,7 @@
         work-items (api/query-work-items (cfg/vsts-instance) project wiql)
         ids (map :id (:workItems work-items))
         changes (map #(api/get-work-item-state-changes (cfg/vsts-instance) %) ids)]
-    (zipmap ids changes)))
+    (zipmap (map (comp keyword str) ids) changes)))
 
 (defn cache-changes [wiql-path]
   (let [wiql-path-base (.getName (io/file wiql-path))
