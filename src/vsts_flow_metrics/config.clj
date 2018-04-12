@@ -32,18 +32,6 @@
       (RuntimeException. "Please ensure environment variable VSTS_ACCESS_TOKEN is set"))
     token))
 
-(def http-options
-  {:basic-auth (str ":" (access-token))
-   :socket-timeout 30000  ;; in milliseconds
-   :conn-timeout 10000
-   :connection-manager (conn-mgr/make-reusable-conn-manager {})
-   :accept :json})
-
-(defn vsts-instance
-  []
-  {:name (:instance (config))
-   :http-options http-options})
-
 (defn deep-merge
   "Merges maps of similar shapes (used for default overriding config files).
   The default must have all the keys present."
@@ -151,3 +139,15 @@
 (defn vsts-field [key]
   (let [field (get-in (config) [key :field])]
     (keyword field)))
+
+(def http-options
+  {:basic-auth (str ":" (access-token))
+   :socket-timeout 30000  ;; in milliseconds
+   :conn-timeout 10000
+   :connection-manager (conn-mgr/make-reusable-conn-manager {})
+   :accept :json})
+
+(defn vsts-instance
+  []
+  {:name (:instance (config))
+   :http-options http-options})

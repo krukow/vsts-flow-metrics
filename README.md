@@ -70,14 +70,24 @@ Run CLI after build: `./flow-metrics`
 Use a Clojure REPL in your development environment or `lein repl` for a basic REPL (should be enough for the examples in the docs folder).
 
 ## Configuration
-You must create a VSTS personal access token for access to your VSTS project. The token must have permissions "Work item search (read)" and "Work item (read)".
+You must create a VSTS personal access token for access to your VSTS project.
+
+Important: The token must have permissions:
+* Code (status)
+* Project and team (read)
+* Code (read)
+* Code search (read)
+* Identity (read)
+* User profile (read)
+* Work item search (read)
+* Work items (read)
+
+ [See this example screenshot](/doc/access-tokens.png).
 
 Then set the following environment variables.
 
 ```bash
 $ export VSTS_ACCESS_TOKEN=<SECRET_ACCESS_TOKEN>
-$ export VSTS_INSTANCE=msmobilecenter.visualstudio.com
-$ export VSTS_PROJECT=Mobile-Center
 ```
 (On OS X with bash).
 
@@ -93,10 +103,15 @@ To see configuration options:
 $ ./flow-metrics show-config
 ```
 
+The two most important is to set are: project (e.g. `Mobile-Center`) and instance (e.g. `msmobilecenter.visualstudio.com`).
+
+Note that project is just the first segment of the area path for a team, e.g., just "Mobile-Center" not "Mobile-Center\Team-A".
+
 For example:
 ```bash
 cat example-config-override.json
 {"project":"My-Project",
+ "instance":"my-instance.visualstudio.com"
  "cycle-time": {"field": "System.BoardColumn"},
  "flow-efficiency" : {
      "active-states" : [ "Active" ],
@@ -105,6 +120,7 @@ cat example-config-override.json
 $ VSTS_FLOW_CONFIG=example-config-override.json ./flow-metrics show-config
 {
   "project" : "My-Project",
+  "instance" : "my-instance.visualstudio.com",  
   "cycle-time" : {
     "from-state" : "Active",
     "to-state" : "Closed",

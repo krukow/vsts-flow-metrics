@@ -1,4 +1,5 @@
 {"project":"My-Project",
+ "instance":"my-instance.visualstudio.com",
  "cycle-time": {"field": "System.BoardColumn"},
  "flow-efficiency" : {
      "active-states" : [ "Active" ],
