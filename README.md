@@ -47,7 +47,7 @@ Sanity checking: show-config
 }
 ```
 
-Once you've downloaded. See the [Configuration section](https://github.com/krukow/vsts-flow-metrics/#configuration) below.
+Once you've downloaded, read the [Configuration section](https://github.com/krukow/vsts-flow-metrics/#configuration) below.
 
 ### Normal download
 
