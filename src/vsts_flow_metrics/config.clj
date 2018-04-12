@@ -41,7 +41,7 @@
 
 (defn vsts-instance
   []
-  {:name (environment-config "VSTS_INSTANCE")
+  {:name (:instance (config))
    :http-options http-options})
 
 (defn deep-merge
@@ -56,8 +56,8 @@
 
 
 (def default-config
-  {:project (or (environment-config "VSTS_PROJECT") "Mobile-Center") ;; replace this
-
+  {:project  (or (environment-config "VSTS_PROJECT") "Mobile-Center") ;; replace this
+   :instance (or (environment-config "VSTS_INSTANCE") "msmobilecenter.visualstudio.com") ;; replace this
    :cycle-time
    {:from-state "Active"
     :to-state "Closed"
