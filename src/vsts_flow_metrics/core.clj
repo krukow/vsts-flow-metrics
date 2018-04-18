@@ -1,9 +1,11 @@
 (ns vsts-flow-metrics.core
   (:require [vsts-flow-metrics.work-items :as work-items]
+            [vsts-flow-metrics.pull-requests :as pull-requests]
             [vsts-flow-metrics.storage :as storage]
             [vsts-flow-metrics.api :as api]
             [vsts-flow-metrics.config :as cfg]
             [vsts-flow-metrics.charts :as charts]
+            [vsts-flow-metrics.utils :as utils]
             [clojure.java.io :as io]
             [clj-time.core :as t]
             [clj-time.format :as f]))
@@ -76,8 +78,124 @@
                    [k (frequencies (remove nil? states))]))
                work-items-as-of))))
 
+(defn pull-requests-cycle-time
+  [pull-requests]
+  (zipmap (map :pullRequestId pull-requests)
+          (map pull-requests/cycle-time pull-requests)))
+
+(defn augment-pull-request-with-threads
+  [pull-request]
+  (let [threads (api/get-pull-request-threads
+                 (cfg/vsts-instance)
+                 (cfg/vsts-project)
+                 (api/get-repository-by-name (cfg/vsts-instance)
+                                             (cfg/vsts-project)
+                                             (get-in (cfg/config) [:pull-requests :repository]))
+                 pull-request)]
+    (assoc pull-request :threads threads)))
+
+(def ^:static pr-responsiveness-time-units
+  {:days t/in-days :hours t/in-hours :mins t/in-minutes})
+
+(defn unit-function-for-first-vote-responsiveness
+  [unit]
+  (let [f (get pr-responsiveness-time-units (keyword unit))]
+    (when-not f
+      (throw (RuntimeException. ":pull-request-responsiveness :responsiveness-time-unit must be days hours or mins.")))
+    f))
+
+(defn pull-requests-first-vote-responsiveness
+  [pull-requests team]
+  (let [unit (get-in (cfg/config) [:pull-request-responsiveness :responsiveness-time-unit])
+        unit-fn (unit-function-for-first-vote-responsiveness unit)
+        augmented-prs (map augment-pull-request-with-threads
+                           pull-requests)
+        team-responsiveness (zipmap (map :pullRequestId pull-requests)
+                                    (map #(pull-requests/first-vote-responsiveness % team)
+                                         augmented-prs))]
+    (map-values #(let [responded (filter :responsiveness (vals %))
+                       responsiveness-mins (map (comp unit-fn :responsiveness)
+                                                responded)]
+                   (if (seq responsiveness-mins)
+                     (apply min responsiveness-mins)
+                     -1.0))
+                team-responsiveness)))
+
+
+;; experimental
+(defn pull-requests-work-items
+  [pull-requests repo]
+  (map
+   #(let [work-items (api/get-pull-request-work-items
+                      (cfg/vsts-instance)
+                      (cfg/vsts-project)
+                      repo
+                      %)
+          work-items-normalized (if (seq work-items)
+                                  (map-values work-items/intervals-in-state work-items)
+                                  (list))]
+      work-items-normalized)
+   pull-requests))
+
+(defn pull-requests-threads
+  [pull-requests repo]
+  (map
+   #(api/get-pull-request-threads
+     (cfg/vsts-instance)
+     (cfg/vsts-project)
+     repo
+     %)
+   pull-requests))
+
+(defn augment-pull-request-with-linked-work-items
+  [pull-req repo]
+  (assoc pull-req
+         :linked-work-items
+         (first (pull-requests-work-items (list pull-req) repo))))
+
+
 (defn interesting-times
   [cfg]
   (let [ago (:ago cfg)
         step (:step cfg)]
     (map (fn [ago] (t/minus (t/now) (t/days ago))) (range 0 (inc ago) step))))
+
+
+(defn augment-pull-request [repo pull-req]
+  (let [iterations (api/get-pull-request-iterations (cfg/vsts-instance) (cfg/vsts-project)
+                                                    repo pull-req)
+        iterations-timestamped (map #(assoc %
+                                            :type :iteration
+                                            :timestamp
+                                            (utils/parse-time-stamp (:createdDate %)))
+                                    iterations)
+        threads (api/get-pull-request-threads
+                 (cfg/vsts-instance)
+                 (cfg/vsts-project)
+                 repo
+                 pull-req)
+
+        threads-timestamped (map
+                             #(assoc %
+                                     :type :thread
+                                     :timestamp
+                                     (utils/parse-time-stamp (:publishedDate %)))
+                             threads)
+
+        events (sort-by :timestamp (concat threads-timestamped iterations-timestamped))
+
+        created-at (utils/parse-time-stamp (:creationDate pull-req))
+        completed-at (utils/parse-time-stamp (:closedDate pull-req))]
+
+    (assoc pull-req :events events
+           :creationDate created-at
+           :closedDate completed-at)))
+
+
+(defn augment-pull-requests
+  [pull-requests]
+  (let [repo (api/get-repository-by-name
+              (cfg/vsts-instance)
+              (cfg/vsts-project)
+              (get-in (cfg/config) [:pull-requests :repository]))]
+    (map #(augment-pull-request repo %) pull-requests)))

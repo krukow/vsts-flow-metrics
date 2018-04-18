@@ -22,5 +22,9 @@ echo "Running smoke tests"
 
 ./flow-metrics lead-time-distribution cache/2018-04-06T07:02-closed-stories-15d.wiql.json
 
-echo "Warning slow command uses API"
+echo "Warning slower commands (uses API)"
 ./flow-metrics historic-queues wiql/features-as-of-template.wiql
+
+./flow-metrics pull-request-cycle-time
+
+./flow-metrics pull-request-responsiveness

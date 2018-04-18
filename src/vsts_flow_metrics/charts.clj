@@ -210,3 +210,31 @@
        (c/spit chart (.getAbsolutePath opt-filename-or-nil))
        (c/view chart))
      chart)))
+
+(defn view-pull-request-cycle-time
+  ([pr-cycle-time]
+   (view-pull-request-cycle-time pr-cycle-time (default-chart-options :pull-request-cycle-time)))
+  ([pr-cycle-time options]
+   (view-pull-request-cycle-time pr-cycle-time (default-chart-options :pull-request-cycle-time) nil)) ;; show graph
+  ([pr-cycle-time options opt-filename-or-nil]
+   (let [options (update-in options [:theme] keyword)
+         category-title (get options :category-title "PR Cycle Time")
+         cycle-time-unit (name (get-in (cfg/config) [:pull-request-cycle-time :cycle-time-unit]))
+         options (update-in options [:y-axis :title] #(str % " (in " cycle-time-unit ")"))
+         item-names (map (comp name str) (keys pr-cycle-time))
+         min-width (+ (* 50 (count item-names)) 500)
+         width (or (:width options) min-width)
+         width (max width min-width)
+         percentiles (istats/quantile (remove nil? (vals pr-cycle-time))
+                                      :probs default-percentiles)
+         percentiles-graph-spec (percentiles-for-graph item-names percentiles)
+         chart (c/category-chart
+                (merge {category-title (zipmap item-names (vals pr-cycle-time))} percentiles-graph-spec)
+                (merge {:series-order (apply vector category-title
+                                             (reverse default-percentile-names))
+                        :width width}
+                       (dissoc options :width)))]
+     (if opt-filename-or-nil
+       (c/spit chart (.getAbsolutePath opt-filename-or-nil))
+       (c/view chart))
+     chart)))

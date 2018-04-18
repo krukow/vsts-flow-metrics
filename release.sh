@@ -15,6 +15,6 @@ echo "Running smoke tests..."
 echo "Releasing project '$PROJECT_NAME' in $PROJECT_DIR version: $1"
 
 rm -f flow-metrics-$1.zip
-zip -r -X flow-metrics-$1.zip flow-metrics target/flow-metrics.jar
+zip -r -X flow-metrics-$1.zip flow-metrics target/flow-metrics.jar wiql doc
 
 echo "Created flow-metrics-$1.zip"
