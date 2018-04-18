@@ -8,19 +8,20 @@ The following examples below show both the REPL based interface and the CLI.
 
 Table of contents
 =================
-
 <!--ts-->
 * [Interfaces](#interfaces)
-      * [Concepts](#concepts)
-         * [Caching work item changes](#caching-work-item-changes)
-      * [vsts-flow-metrics functionality](#vsts-flow-metrics-functionality)
-         * [Loading and caching historic change data](#loading-and-caching-historic-change-data)
-         * [Cycle time metric](#cycle-time-metric)
-         * [Time spent in state](#time-spent-in-state)
-         * [Flow efficiency](#flow-efficiency)
-         * [Responsiveness](#responsiveness)
-         * [Lead time distribution](#lead-time-distribution)
-         * [Historic queues](#historic-queues)
+* [Concepts](#concepts)
+    * [Caching work item changes](#caching-work-item-changes)
+* [vsts-flow-metrics functionality](#vsts-flow-metrics-functionality)
+    * [Loading and caching historic change data](#loading-and-caching-historic-change-data)
+    * [Cycle time metric](#cycle-time-metric)
+    * [Time spent in state](#time-spent-in-state)
+    * [Flow efficiency](#flow-efficiency)
+    * [Responsiveness](#responsiveness)
+    * [Lead time distribution](#lead-time-distribution)
+    * [Historic queues](#historic-queues)
+    * [Pull Request Cycle Time](#pull-request-cycle-time)
+    * [Pull Request Responsiveness](#pull-request-responsiveness)
 
 <!--te-->
 
@@ -359,4 +360,117 @@ CLI:
 To chart:
 ```
 ./flow-metrics historic-queues wiql/features-as-of-template.wiql --chart as-of-30days-step3.svg
+```
+
+### Pull Request Cycle Time
+The `pull-request-cycle-time` tool works of a set of pull requests for a VSTS project and repository. We define pull request (PR) cycle time as the time from the PR is created until it is completed (i.e. merged). We only consider PRs that are completed for cycle time.
+
+The `pull-request-cycle-time` tool uses the configuration system to filter down the pull requests. The key configuration options are:
+
+```
+$ ./flow-metrics show-config
+{
+  "instance" : "msmobilecenter.visualstudio.com",
+  "project" : "Mobile-Center",
+  "pull-requests" : {
+    "repository" : "appcenter",
+    "team-name" : "Kasper-Team"
+  },
+  "pull-request-cycle-time" : {
+    "closed-after" : "2018-04-01",
+    "cycle-time-unit" : "hours",
+    ...
+  }   
+```
+This should be read as follows: find pull requests "completed" after "2018-04-01" in the "appcenter" repo in the "msmobilecenter" instance where "Kasper-Team" is assigned as reviewers. Compute the cycle time (in hours) for each of those PRs.
+
+Note: this doesn't use a cached set of changes and so the computation is slower as it needs to make many calls to the VSTS API.
+
+CLI:
+```
+./flow-metrics pull-request-cycle-time
+{
+  "11641" : 3.55,
+  "11529" : 19.866666666666667,
+  "11187" : 3.1166666666666667,
+  "11364" : 19.233333333333334,
+  "11815" : 11.233333333333333,
+  "11693" : 0.3333333333333333,
+  "11702" : 70.03333333333333,
+  "11770" : 0.6833333333333333,
+  "11588" : 21.483333333333334,
+  "11533" : 67.36666666666666,
+  "11608" : 10.983333333333333,
+  "10928" : 150.63333333333333,
+  "11432" : 94.26666666666667,
+  "11524" : 0.8833333333333333,
+  "11523" : 0.5166666666666667,
+  "11700" : 92.4,
+  "11584" : 0.25,
+  "10925" : 151.68333333333334
+}
+```
+
+To chart:
+```
+$ ./flow-metrics pull-request-cycle-time --chart pr-cycle-time-kasper-team-apr-1.svg
+```
+
+### Pull Request Responsiveness
+The `pull-request-responsiveness` tool is a bit complicated. It's intended to compute how fast a VSTS team responds with review feedback on pull requests assigned to their team. It computes for a set of pull requests, the time to first review vote cast by a specific team. 
+
+We define the responsiveness by a team on a pull request as the time from the team is assigned as a reviewer until any member of that team has provided feedback by casting a vote ("Approve", "Approve with suggestions" "Wait for author" "Reject").
+
+The `pull-request-responsiveness` tool uses the configuration system to filter down the pull requests. The key configuration options are:
+
+```
+$ ./flow-metrics show-config
+{
+  "instance" : "msmobilecenter.visualstudio.com",
+  "project" : "Mobile-Center",
+  "pull-requests" : {
+    "repository" : "appcenter",
+    "team-name" : "Kasper-Team"
+  },
+  "pull-request-responsiveness" : {
+    "closed-after" : "2018-04-01",
+    "responsiveness-time-unit" : "hours",
+    ...
+  }  
+```
+This should be read as follows: find pull requests "completed" after "2018-04-01" or which are currently active in the "appcenter" repo in the "msmobilecenter" instance where "Kasper-Team" is assigned as reviewers. Compute the responsiveness (in hours) for each of those PRs for "Kasper-Team".
+
+Note: this doesn't use a cached set of changes and so the computation is slower as it needs to make many calls to the VSTS API. This is especially slow since it needs to crawl all PR threads as well as find membership of users for the specified team.
+
+CLI:
+```
+$ ./flow-metrics pull-request-responsiveness
+
+{
+  "11641" : 0,
+  "11529" : 3,
+  "11187" : 0,
+  "11364" : 4,
+  "11815" : 0,
+  "11693" : -1.0,
+  "11702" : 68,
+  "11770" : -1.0,
+  "11821" : 18,
+  "11588" : -1.0,
+  "11533" : 66,
+  "11608" : 10,
+  "10928" : 0,
+  "11432" : 67,
+  "11524" : 0,
+  "11523" : 0,
+  "11700" : 66,
+  "11584" : 0,
+  "10925" : 0
+}
+```
+Note that -1 means the PR has not yet received any reviews by the team.
+
+To chart:
+```
+$ ./flow-metrics pull-request-responsiveness --chart pr-responsiveness-kasper-team-apr-1.svg
 ```
