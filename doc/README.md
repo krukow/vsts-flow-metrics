@@ -6,6 +6,24 @@ The REPL-based approach is much more powerful, but the CLI tool combined with th
 
 The following examples below show both the REPL based interface and the CLI.
 
+Table of contents
+=================
+
+<!--ts-->
+* [Interfaces](#interfaces)
+      * [Concepts](#concepts)
+         * [Caching work item changes](#caching-work-item-changes)
+      * [vsts-flow-metrics functionality](#vsts-flow-metrics-functionality)
+         * [Loading and caching historic change data](#loading-and-caching-historic-change-data)
+         * [Cycle time metric](#cycle-time-metric)
+         * [Time spent in state](#time-spent-in-state)
+         * [Flow efficiency](#flow-efficiency)
+         * [Responsiveness](#responsiveness)
+         * [Lead time distribution](#lead-time-distribution)
+         * [Historic queues](#historic-queues)
+
+<!--te-->
+
 ## Concepts
 Most of the functionality is accessed by first performing a VSTS Work Item Query Language query (a "WIQL" query) . This computes the target set of work items for which you want to compute one or more metrics.
 
