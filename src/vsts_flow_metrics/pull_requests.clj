@@ -76,8 +76,7 @@
                                display-name (get-in upd [:properties
                                                          :CodeReviewReviewersUpdatedAddedDisplayName
                                                          :$value])
-                               event-time (f/parse (f/formatter :date-time)
-                                                   (:publishedDate upd))]
+                               event-time (utils/parse-time-stamp (:publishedDate upd))]
                            (assoc acc reviewer-id {:id reviewer-id
                                                    :displayName display-name
                                                    :added-at event-time})))
