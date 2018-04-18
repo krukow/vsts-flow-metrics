@@ -159,6 +159,7 @@
     :chart {:title "PR Responsiveness"
             :width 1440
             :height 900
+            :category-title "PR Responsiveness"
             :x-axis {:title "Pull Request"}
             :y-axis {:title "Responsiveness" :decimal-pattern "##.##"}
             :theme :xchart}}
