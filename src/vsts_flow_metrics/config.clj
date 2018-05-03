@@ -12,6 +12,7 @@
       env)))
 
 (def ^:dynamic *debug-http* false)
+(def ^:dynamic *config-override* nil)
 
 (defn debug-from-env?
   []
@@ -165,9 +166,15 @@
             :theme :xchart}}
    })
 
+(defn- config-override
+  []
+  (if *config-override*
+    *config-override*
+    (load-config-from-file (config-file))))
+
 (defn config
   []
-  (deep-merge default-config (load-config-from-file (config-file))))
+  (deep-merge default-config (config-override)))
 
 (defn vsts-field [key]
   (let [field (get-in (config) [key :field])]
