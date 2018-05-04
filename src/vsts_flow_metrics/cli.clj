@@ -6,6 +6,7 @@
             [vsts-flow-metrics.storage :as storage]
             [vsts-flow-metrics.charts :as charts]
             [vsts-flow-metrics.config :as cfg]
+            [vsts-flow-metrics.csv :as csv]
             [clojure.string :as string]
             [clj-time.core :as t]
             [clj-time.format :as f]
@@ -21,23 +22,40 @@
     (println cli-summary)
     (println "\nTools:
     show-config                              - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
+
     cache-work-item-changes <wiql-path>      - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
-    cycle-time <cache/wiql>                  - Cycle times for a set of work-items defined by a .wiql file or a .json cache at path <cache/wiql>. Use the --chart option to save a chart.
+
+    cycle-time <cache/wiql>                  - Cycle times for a set of work-items defined by a .wiql file or a .json cache at path <cache/wiql>. Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
+
     time-in-state <cache/wiql>               - Times in states for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
-    flow-efficiency <cache/wiql>             - Flow efficiency for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+
+    flow-efficiency <cache/wiql>             - Flow efficiency for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
+
     responsiveness <cache/wiql>              - Responsiveness for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+
     lead-time-distribution <cache/wiql>      - Lead time distribution for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+
     historic-queues <wiql-template>          - Queues over time for <wiql-template>, a wiql template (see e.g., wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
+
     pull-request-cycle-time                  - Cycle time for pull requests (optionally, use configuration to target a specific team). Use the --chart option to save a chart.
+
     pull-request-responsiveness              - Time to first vote in pull request reviews for a team. Team is configured using the configuration: :pull-requests :team-name. Use the --chart option to save a chart.
+
+    batch <batch.json>                       - Run a batch of commands specified in the <batch.json> file. This can be more performant as you avoid runtime startup costs for each command. See documentation for more information about the format of the <batch.json> file.
     ")))
 
 (def cli-options
   [["-h" "--help"  "Prints usage"]
    ["-c" "--chart FILENAME" "Saves a chart instead of printing data to stdout (.svg, .png, ...). Note that .pdf generation is very slow for some reason for .svg is preferred for vector graphs."
     :parse-fn (fn [fn]
-                (when (nil? fn)
+                (when (string/blank? fn)
                   (println "Chart filename must be specified")
+                  (System/exit 1))
+                (io/file fn))]
+   ["-s" "--csv FILENAME" "Save data in a file in comma separated values format (.csv)."
+    :parse-fn (fn [fn]
+                (when (string/blank? fn)
+                  (println ".csv filename must be specified")
                   (System/exit 1))
                 (io/file fn))]])
 
@@ -47,6 +65,9 @@
     (println "You must specify an existing file:" (str file))
     (System/exit 1)))
 
+
+(defn csv-not-supported! []
+  (throw (RuntimeException. "--csv option not yet supported for this tool")))
 
 (defn print-result
   [res]
@@ -101,10 +122,16 @@
     (let [cycle-times (-> (load-state-changes cache-or-wiql-file-path)
                           core/intervals-in-state
                           core/cycle-times)]
-      (if (:chart options)
+      (when (:csv options)
+        (csv/write-fn-to-file csv/cycle-times
+                              cycle-times
+                              (:csv options)))
+      (when (:chart options)
         (charts/view-cycle-time cycle-times
                                 (charts/default-chart-options :cycle-time)
-                                (:chart options))
+                                (:chart options)))
+      (when (and (nil? (:csv options))
+                 (nil? (:chart options)))
         (print-result cycle-times)))))
 
 (defn time-in-state [options args]
@@ -119,10 +146,15 @@
     (let [times-in-states (-> (load-state-changes cache-or-wiql-file-path)
                               core/intervals-in-state
                               core/days-spent-in-state)]
-      (if (:chart options)
+      (cond
+        (:csv options)
+        (csv-not-supported!)
+
+        (:chart options)
         (charts/view-time-in-state times-in-states
                                    (charts/default-chart-options :time-in-state)
                                    (:chart options))
+        :else
         (print-result times-in-states)))))
 
 (defn responsiveness
@@ -138,10 +170,15 @@
     (let [responsiveness (-> (load-state-changes cache-or-wiql-file-path)
                              core/intervals-in-state
                              core/responsiveness)]
-      (if (:chart options)
+      (cond
+        (:csv options)
+        (csv-not-supported!)
+
+        (:chart options)
         (charts/view-responsiveness responsiveness
                                    (charts/default-chart-options :responsiveness)
                                    (:chart options))
+        :else
         (print-result
          (core/map-values :in-days responsiveness))))))
 
@@ -157,10 +194,18 @@
     (let [flow-efficiency (-> (load-state-changes cache-or-wiql-file-path)
                               core/intervals-in-state
                               core/flow-efficiency)]
-      (if (:chart options)
+      (when (:csv options)
+        (csv/write-fn-to-file csv/flow-efficiency
+                              flow-efficiency
+                              (:csv options)))
+
+      (when (:chart options)
         (charts/view-flow-efficiency flow-efficiency
                                      (charts/default-chart-options :flow-efficiency)
-                                     (:chart options))
+                                     (:chart options)))
+
+      (when (and (nil? (:csv options))
+                 (nil? (:chart options)))
         (print-result flow-efficiency)))))
 
 (defn lead-time-distribution
@@ -256,6 +301,27 @@
        (:chart options))
       (print-result pr-responsiveness))))
 
+(defn batch
+  [options args]
+  (let [batch-file (first args)]
+    (when (nil? batch-file)
+      (println "You must specify a path to a batch file in JSON format")
+      (System/exit 1))
+    (when-not (.exists (io/file batch-file))
+      (println "File does not exist:" batch-file)
+      (System/exit 1))
+    (let [batch-data (json/parse-string (slurp (io/file batch-file)) true)]
+
+      (doseq [{:keys [tool args options config] :as op} batch-data]
+        (when-not (= #{:tool :args :options :config}
+                     (into #{} (keys op)))
+                  (throw (RuntimeException.
+                          (str "Expect exactly: tool, args, options and config as keys in each operation. Found: " (keys op)))))
+        (println "Running: " tool " with args: " args " options: " options " and config override: " config)
+        (let [tool-fn (ns-resolve 'vsts-flow-metrics.cli (symbol tool))]
+          (binding [cfg/*config-override* config]
+            (tool-fn options args)))))))
+
 (defn -main
   [& args]
   (let [{:keys [options arguments summary errors]}
@@ -293,6 +359,7 @@
         "historic-queues" (historic-queues options (rest arguments))
         "pull-request-cycle-time" (pull-request-cycle-time options (rest arguments))
         "pull-request-responsiveness" (pull-request-responsiveness options (rest arguments))
+        "batch" (batch options (rest arguments))
         (binding [*out* *err*]
           (when (first arguments)
             (println "** No such tool: " (first arguments)))
