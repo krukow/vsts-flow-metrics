@@ -22,6 +22,7 @@ Table of contents
     * [Historic queues](#historic-queues)
     * [Pull Request Cycle Time](#pull-request-cycle-time)
     * [Pull Request Responsiveness](#pull-request-responsiveness)
+    * [Batch operations](#batch-operations)
 
 <!--te-->
 
@@ -129,6 +130,8 @@ or, for example,
 ./flow-metrics cycle-time cache/2018-03-22T04:34-closed-features-30d.wiql.json --chart features-closed-30d-2018-03-22.png
 ```
 
+You can generate a .csv file using the `--csv out.csv` option.
+
 [An example looks like this](https://s3-eu-west-1.amazonaws.com/flow-metrics-examples/features-closed-30d-2018-04-02T19-19.svg) (to view, your browser must support .svg format).
 
 Alternatively, if you're not using a cache you can do:
@@ -229,6 +232,8 @@ Clojure REPL:
      ;;see more options at https://github.com/hypirion/clj-xchart
      (charts/view-flow-efficiency (charts/default-chart-options :flow-efficiency) (io/file "eff.svg")))
 ```
+
+You can generate a .csv file using the `--csv out.csv` option.
 
 ### Responsiveness 
 The `responsiveness` tool computes how long work items take to transition from one state (`from-state`, defaults to "Ready for Work") to another (`to-state`, defaults to "Active"). Responsiveness computes how long time work is 'stuck' in a state, or how "responsive" the team processing `from-state` is.
@@ -474,3 +479,32 @@ To chart:
 ```
 $ ./flow-metrics pull-request-responsiveness --chart pr-responsiveness-kasper-team-apr-1.svg
 ```
+
+### Batch operations
+The `batch` tool allows you to run several commands in one invocation of the cli tool. You provide the batch tool with a simple .json file which must be an array of commands you want to run. Each command has the format
+
+```json
+{
+    "tool": "cycle-time", // the tool to run
+    "args": [ //args to supply
+      "cache/example.json"
+    ],
+    "options": { // any -- options e.g. csv
+      "csv": "out.csv"
+    },
+    "config": { // any config overrides for this command only
+      "pull-requests": {
+        "repository": "appcenter",
+        "team-name": "Dennis-Team"
+      }
+    }
+  }
+```
+The example above is equivalent of running
+
+```
+$ VSTS_CONFIG=override.json ./flow-metrics cycle-time cache/example.json --csv out.csv
+```
+where `VSTS_CONFIG` is a file with the contents of the config object above.
+
+The batch tool will run each of these commands in turn.
