@@ -52,7 +52,7 @@ Once you've downloaded, read the [Configuration section](https://github.com/kruk
 ### Normal download
 
 1. Download a release from the [releases page](https://github.com/krukow/vsts-flow-metrics/releases)
-2. Unzip the `.zip` archive, e.g., `unzip flow-metrics-1.0.0.zip` it contains a bash shell script (`./flow-metrics`) which invokes `java -jar target/flow-metrics.jar`. If your system doesn't support bash you can simply run this command instead. 
+2. Unzip the `.zip` archive, e.g., `unzip flow-metrics-1.0.0.zip` it contains a bash shell script (`./flow-metrics`) which invokes `java -Djava.awt.headless=true -jar target/flow-metrics.jar`. If your system doesn't support bash you can simply run this command instead.
 
 
 ## Build from source

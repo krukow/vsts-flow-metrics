@@ -7,7 +7,7 @@ flow_metrics_jar="#{script_dir}/target/flow-metrics.jar" unless File.exists? flo
 raise "flow-metrics.jar not found in ./ or target/" unless File.exists? flow_metrics_jar
 
 if ENV['DEBUG']=='1'
-  exec('java', '-Dxtc.env=development', '-jar', flow_metrics_jar, *ARGV)
+  exec('java', '-Dxtc.env=development', '-Djava.awt.headless=true', '-jar', flow_metrics_jar, *ARGV)
 else
-  exec('java', '-jar', flow_metrics_jar, *ARGV)
+  exec('java', '-Djava.awt.headless=true', '-jar', flow_metrics_jar, *ARGV)
 end
