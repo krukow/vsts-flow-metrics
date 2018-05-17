@@ -86,7 +86,7 @@
   (println (json/generate-string res {:pretty true})))
 
 (defn show-config
-  []
+  [options args]
   (println (json/generate-string (cfg/config) {:pretty true})))
 
 (defn cache-work-item-changes
@@ -412,7 +412,7 @@ of that work item, and resolve that using the VSTS API."
     ;; Launch selected tool
     (try
       (case (first arguments)
-        "show-config" (show-config)
+        "show-config" (show-config options (rest arguments))
         "cache-work-item-changes" (cache-work-item-changes options (rest arguments))
         "cycle-time" (cycle-time options (rest arguments))
         "time-in-state" (time-in-state options (rest arguments))

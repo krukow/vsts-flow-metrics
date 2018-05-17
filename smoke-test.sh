@@ -27,3 +27,5 @@ echo "Warning slower commands (uses API)"
 ./flow-metrics pull-request-cycle-time
 
 ./flow-metrics pull-request-responsiveness
+
+./flow-metrics batch sample-batch.json
