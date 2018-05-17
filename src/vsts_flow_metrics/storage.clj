@@ -28,12 +28,49 @@
 
 (defn work-item-state-changes
   "Gets all state transition changes to a work item. NOTE: Makes one VSTS API call per work item."
-  [wiql-path project]
-  (let [wiql (slurp (io/file wiql-path))
-        work-items (api/query-work-items (cfg/vsts-instance) project wiql)
-        ids (map :id (:workItems work-items))
-        changes (map #(api/get-work-item-state-changes (cfg/vsts-instance) %) ids)]
-    (zipmap (map (comp keyword str) ids) changes)))
+  [wiql-path-or-raw project]
+  (let [wiql-path-or-raw-file (io/file wiql-path-or-raw)
+        wiql (cond
+               (.exists wiql-path-or-raw-file)
+               (slurp wiql-path-or-raw-file)
+
+               (clojure.string/starts-with? (clojure.string/lower-case
+                                             (clojure.string/trim wiql-path-or-raw))
+                                            "select")
+               wiql-path-or-raw
+
+               :else
+               (throw (RuntimeException. (str "Invalid wiql-path or raw wiql: " wiql-path-or-raw))))
+        query-result (api/query-work-items (cfg/vsts-instance) project wiql)]
+    (if (= (:queryResultType query-result) "workItemLink")
+      ;; we only deal with "System.LinkTypes.Hierarchy-Forward" (parent/child) for now
+      (let [links (remove #(not= (:rel %) "System.LinkTypes.Hierarchy-Forward")
+                          (:workItemRelations query-result))
+            process-link
+            (fn [acc link]
+              (let [source-id (keyword (str (:id (:source link))))
+                    target-id (keyword (str (:id (:target link))))]
+                (-> acc
+                    (update  source-id
+                             (fn [old-source]
+                               (if old-source
+                                 old-source
+                                 {:changes (api/get-work-item-state-changes
+                                            (cfg/vsts-instance)
+                                            (name source-id))
+                                  :children {}})))
+                    (update-in [source-id :children]
+                               #(assoc % target-id (api/get-work-item-state-changes
+                                                    (cfg/vsts-instance)
+                                                    (name target-id)))))))]
+        (reduce process-link {} links))
+
+
+
+      ; flat list of work items
+      (let  [ids (map :id (:workItems query-result))
+             changes (map #(api/get-work-item-state-changes (cfg/vsts-instance) %) ids)]
+        (zipmap (map (comp keyword str) ids) changes)))))
 
 (defn cache-changes [wiql-path]
   (let [wiql-path-base (.getName (io/file wiql-path))

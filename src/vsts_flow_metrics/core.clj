@@ -17,7 +17,19 @@
 
 (defn intervals-in-state
   [work-items-changes]
-  (map-values work-items/intervals-in-state work-items-changes))
+  (cond (sequential? (first (vals work-items-changes))) ;; flat query
+        (map-values work-items/intervals-in-state work-items-changes)
+
+        (map? (first (vals work-items-changes))) ;; relational query
+        (into {} (map (fn [[id parent]]
+                        (let [parent-changes (work-items/intervals-in-state (:changes parent))
+                              child-changes (intervals-in-state (:children parent))]
+                          [id
+                           {:changes parent-changes
+                            :children child-changes}]))
+                      work-items-changes))
+        :else
+        (throw (RuntimeException. (str "Unexpected format for work-item-changes: " (first (vals work-items-changes)))))))
 
 (defn cycle-times
   "Computes cycle time in days (defined as hours / 24.0) for a set of work items with state intervals.
@@ -50,6 +62,22 @@
       (work-items/flow-efficiency (get time-spent-data (keyword field))
                                   active-states blocked-states))
     state-intervals)))
+
+(defn aggregate-flow-efficiency
+  ([rel-state-intervals]
+   (aggregate-flow-efficiency rel-state-intervals (:aggregate-flow-efficiency (cfg/config))))
+  ([rel-state-intervals {:keys [active-states blocked-states field] :as options}]
+   (map-values
+    (fn [parent]
+      (let [child-eff (flow-efficiency (:children parent) options)
+            aggregate (apply merge-with + (vals child-eff))]
+        (assoc aggregate
+               :flow-efficiency
+               (if-not (zero? (+ (:active aggregate) (:blocked aggregate)))
+                 (double (/ (:active aggregate)
+                            (+ (:active aggregate) (:blocked aggregate))))
+                        1.0))))
+    rel-state-intervals)))
 
 (defn responsiveness
   "Computes responsiveness from `from-state` to `to-state`"
