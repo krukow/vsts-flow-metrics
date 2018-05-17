@@ -27,7 +27,7 @@
   ([cycle-time]
    (view-cycle-time cycle-time (default-chart-options :cycle-time)))
   ([cycle-time options]
-   (view-cycle-time cycle-time (default-chart-options :cycle-time) nil)) ;; show graph
+   (view-cycle-time cycle-time options nil)) ;; show graph
   ([cycle-time options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          category-title (get options :category-title "Cycle Time")
@@ -54,7 +54,7 @@
   ([times-in-states]
    (view-time-in-state times-in-states (default-chart-options :time-in-state)))
   ([times-in-states options]
-   (view-time-in-state times-in-states (default-chart-options :time-in-state) nil)) ;; show graph
+   (view-time-in-state times-in-states options nil)) ;; show graph
   ([times-in-states options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          all-states         (set (filter string? (mapcat keys (vals times-in-states))))
@@ -87,13 +87,13 @@
   ([flow-efficiency]
    (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency)))
   ([flow-efficiency options]
-   (view-flow-efficiency flow-efficiency (default-chart-options :flow-efficiency) nil)) ;; show graph
+   (view-flow-efficiency flow-efficiency options nil)) ;; show graph
   ([flow-efficiency options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          item-names (map name (keys flow-efficiency))
          title (get options :category-title "Flow efficiency")
          percentiles (istats/quantile (remove #(zero? %)
-                                             (map :flow-efficiency (vals flow-efficiency)))
+                                              (map :flow-efficiency (vals flow-efficiency)))
                                      :probs [0.1 0.2 0.30 0.5 0.80 0.9])
          percentile-names ["10th percentile" "20th percentile" "30th percentile" "median" "80th percentile" "90th percentile"]
          percentiles-graph-spec (percentiles-for-graph item-names percentiles percentile-names)
@@ -117,7 +117,7 @@
   ([responsiveness]
    (view-responsiveness responsiveness (default-chart-options :responsiveness)))
   ([responsiveness options]
-   (view-responsiveness responsiveness (default-chart-options :responsiveness) nil)) ;; show graph
+   (view-responsiveness responsiveness options nil)) ;; show graph
   ([responsiveness options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          title (get options :category-title)
@@ -148,7 +148,7 @@
   ([lead-time-dist]
    (view-lead-time-distribution lead-time-dist (default-chart-options :lead-time-distribution)))
   ([lead-time-dist options]
-   (view-lead-time-distribution lead-time-dist (default-chart-options :lead-time-distribution) nil)) ;; show graph
+   (view-lead-time-distribution lead-time-dist options nil)) ;; show graph
   ([lead-time-dist options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          title (get options :category-title)
@@ -175,7 +175,7 @@
   ([state-dist]
    (view-historic-queues state-dist (default-chart-options :historic-queues)))
   ([state-dist options]
-   (view-historic-queues state-dist (default-chart-options :historic-queues) nil)) ;; show graph
+   (view-historic-queues state-dist options nil)) ;; show graph
   ([state-dist options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          title (get options :category-title)
@@ -215,7 +215,7 @@
   ([pr-cycle-time]
    (view-pull-request-cycle-time pr-cycle-time (default-chart-options :pull-request-cycle-time)))
   ([pr-cycle-time options]
-   (view-pull-request-cycle-time pr-cycle-time (default-chart-options :pull-request-cycle-time) nil)) ;; show graph
+   (view-pull-request-cycle-time pr-cycle-time options nil)) ;; show graph
   ([pr-cycle-time options opt-filename-or-nil]
    (let [options (update-in options [:theme] keyword)
          category-title (get options :category-title "PR Cycle Time")

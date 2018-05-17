@@ -100,6 +100,20 @@
                      :decimal-pattern "#.## %"}
             :theme :xchart}}
 
+   :aggregate-flow-efficiency
+   {:active-states ["Active"]
+    :blocked-states ["Blocked" "In Review"]
+    :field :System.State ;;or :System.BoardColumn
+    :chart {:title "Aggregate Flow efficiency"
+            :overlap? true
+            :render-style :bar
+            :width 1440
+            :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Aggregate Flow efficiency"
+                     :decimal-pattern "#.## %"}
+            :theme :xchart}}
+
    :responsiveness
    {:from-state "Ready for Work"
     :to-state "Active"

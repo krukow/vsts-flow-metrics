@@ -14,6 +14,7 @@
   (:gen-class :main true))
 
 
+(defn- as-integer [s] (try (Integer/parseInt s 10) (catch RuntimeException e)))
 
 (defn- dump-usage
   [cli-summary]
@@ -21,27 +22,29 @@
     (println "USAGE:")
     (println cli-summary)
     (println "\nTools:
-    show-config                              - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
+    show-config                       - Prints current configuration in JSON format (overrides specified with VSTS_FLOW_CONFIG=my-overrides.json).
 
-    cache-work-item-changes <wiql-path>      - Queries work items specified in .wiql file: <wiql-path>. Saves results in a cache folder. Note: a VSTS project must be specified in the config.
+    cache-work-item-changes <spec>    - Queries work items specified in <spec> (see docs spec semantics). Saves results in a cache folder. Note: a VSTS project must be specified in the config.
 
-    cycle-time <cache/wiql>                  - Cycle times for a set of work-items defined by a .wiql file or a .json cache at path <cache/wiql>. Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
+    cycle-time <spec>                 - Cycle times for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
 
-    time-in-state <cache/wiql>               - Times in states for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    time-in-state <spec>              - Times in states for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart.
 
-    flow-efficiency <cache/wiql>             - Flow efficiency for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
+    flow-efficiency <spec>            - Flow efficiency for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
 
-    responsiveness <cache/wiql>              - Responsiveness for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    aggregate-flow-efficiency <spec>  - Aggregate flow efficiency for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
 
-    lead-time-distribution <cache/wiql>      - Lead time distribution for a set of work-items defined by a .wiql file or a .json cache at path. Use the --chart option to save a chart.
+    responsiveness <spec>             - Responsiveness for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart.
 
-    historic-queues <wiql-template>          - Queues over time for <wiql-template>, a wiql template (see e.g., wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
+    lead-time-distribution <spec>     - Lead time distribution for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart.
 
-    pull-request-cycle-time                  - Cycle time for pull requests (optionally, use configuration to target a specific team). Use the --chart option to save a chart.
+    historic-queues <wiql-template>   - Queues over time for <wiql-template>, a wiql template (see e.g., wiql/features-as-of-template.wiql). Use the --chart option to save a chart.
 
-    pull-request-responsiveness              - Time to first vote in pull request reviews for a team. Team is configured using the configuration: :pull-requests :team-name. Use the --chart option to save a chart.
+    pull-request-cycle-time           - Cycle time for pull requests (optionally, use configuration to target a specific team). Use the --chart option to save a chart.
 
-    batch <batch.json>                       - Run a batch of commands specified in the <batch.json> file. This can be more performant as you avoid runtime startup costs for each command. See documentation for more information about the format of the <batch.json> file.
+    pull-request-responsiveness       - Time to first vote in pull request reviews for a team. Team is configured using the configuration: :pull-requests :team-name. Use the --chart option to save a chart.
+
+    batch <batch.json>                - Run a batch of commands specified in the <batch.json> file. This can be more performant as you avoid runtime startup costs for each command. See documentation for more information about the format of the <batch.json> file.
     ")))
 
 (def cli-options
@@ -69,6 +72,15 @@
 (defn csv-not-supported! []
   (throw (RuntimeException. "--csv option not yet supported for this tool")))
 
+(defn- validate-work-items-spec!
+  [work-items-spec]
+  (when (nil? work-items-spec)
+    (println "You must specify a work items spec (path to a cache, a wiql file or a work item id).")
+      (System/exit 1))
+
+  (when-not (as-integer work-items-spec)
+    (check-file-exists! (io/file work-items-spec))))
+
 (defn print-result
   [res]
   (println (json/generate-string res {:pretty true})))
@@ -94,12 +106,44 @@
     (println "Note: this may take some time depending on the number of work items in the result..." )
     (println "Saved work item state changes in " (storage/cache-changes wiql-file-path))))
 
+(defn generate-work-item-children-wiql
+  [work-items-spec]
+  (clojure.string/trim
+   (format  "
+SELECT
+    [System.Id]
+FROM workitemLinks
+WHERE
+    (
+        [Source].[System.TeamProject] = @project
+        AND [Source].[System.Id] = %s
+    )
+    AND (
+        [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward'
+    )
+    AND (
+        [Target].[System.TeamProject] = @project
+        AND [Target].[System.WorkItemType] <> ''
+    )
+ORDER BY [System.Id]
+MODE (MustContain)"
+
+            work-items-spec))
+
+  )
+
 (defn load-state-changes
-  "Can either take a cached .json file or an uncached .wiql query"
-  [file-path]
-  (let [target-file (io/file file-path)
+  "Can either take a cached .json file, an uncached .wiql query or a work item id.
+If a cache is specified, the cache is loaded. If a WIQL query is specified the query is resolved
+using the VSTS API. If a work item id is specified, we'll generate a WIQL query to find all children
+of that work item, and resolve that using the VSTS API."
+  [work-items-spec]
+  (let [target-file (io/file work-items-spec)
         lower-case-basename (.toLowerCase (.getName target-file))]
     (cond
+      (as-integer work-items-spec);; work item id
+      (storage/work-item-state-changes (generate-work-item-children-wiql work-items-spec) (:project (cfg/config)))
+
       (.endsWith lower-case-basename ".json") ;; assume cache
       (storage/load-state-changes-from-cache target-file)
 
@@ -110,17 +154,25 @@
       (throw (RuntimeException. (str "File: " lower-case-basename " should have a .json / .wiql extension. Use .json for cached work item changes and .wiql for WIQL query files."))))))
 
 
-(defn cycle-time [options args]
-  (let [[cache-or-wiql-file-path] args]
-    (when (nil? cache-or-wiql-file-path)
-      (println "You must specify a path to a cache or wiql file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cache-or-wiql-file-path))
-      (println "File does not exist:" cache-or-wiql-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+(defn- relational-query-result? [query-result]
+  (if-let [sample (first (vals query-result))]
+    (and (map? sample)
+         (contains? sample :children))))
 
-    (let [cycle-times (-> (load-state-changes cache-or-wiql-file-path)
+(defn- normalize-query-results [query-result]
+  (if (relational-query-result? query-result)
+    (into {} (mapcat
+              #(:children %)
+              (vals query-result)))
+    query-result))
+
+(defn cycle-time [options args]
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
+
+    (let [cycle-times (-> (load-state-changes work-items-spec)
                           core/intervals-in-state
+                          normalize-query-results
                           core/cycle-times)]
       (when (:csv options)
         (csv/write-fn-to-file csv/cycle-times
@@ -135,16 +187,12 @@
         (print-result cycle-times)))))
 
 (defn time-in-state [options args]
-  (let [[cache-or-wiql-file-path] args]
-    (when (nil? cache-or-wiql-file-path)
-      (println "You must specify a path to a cache or wiql file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cache-or-wiql-file-path))
-      (println "File does not exist:" cache-or-wiql-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
 
-    (let [times-in-states (-> (load-state-changes cache-or-wiql-file-path)
+    (let [times-in-states (-> (load-state-changes work-items-spec)
                               core/intervals-in-state
+                              normalize-query-results
                               core/days-spent-in-state)]
       (cond
         (:csv options)
@@ -159,16 +207,12 @@
 
 (defn responsiveness
   [options args]
-  (let [[cache-or-wiql-file-path] args]
-    (when (nil? cache-or-wiql-file-path)
-      (println "You must specify a path to a cache or wiql file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cache-or-wiql-file-path))
-      (println "File does not exist:" cache-or-wiql-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
 
-    (let [responsiveness (-> (load-state-changes cache-or-wiql-file-path)
+    (let [responsiveness (-> (load-state-changes work-items-spec)
                              core/intervals-in-state
+                             normalize-query-results
                              core/responsiveness)]
       (cond
         (:csv options)
@@ -183,17 +227,41 @@
          (core/map-values :in-days responsiveness))))))
 
 (defn flow-efficiency [options args]
-  (let [[cache-or-wiql-file-path] args]
-    (when (nil? cache-or-wiql-file-path)
-      (println "You must specify a path to a cache or wiql file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cache-or-wiql-file-path))
-      (println "File does not exist:" cache-or-wiql-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
 
-    (let [flow-efficiency (-> (load-state-changes cache-or-wiql-file-path)
+    (let [flow-efficiency (-> (load-state-changes work-items-spec)
                               core/intervals-in-state
+                              normalize-query-results
                               core/flow-efficiency)]
+      (when (:csv options)
+        (csv/write-fn-to-file csv/flow-efficiency
+                              flow-efficiency
+                              (:csv options)))
+
+      (when (:chart options)
+        (charts/view-flow-efficiency flow-efficiency
+                                     (charts/default-chart-options :flow-efficiency)
+                                     (:chart options)))
+
+      (when (and (nil? (:csv options))
+                 (nil? (:chart options)))
+        (print-result flow-efficiency)))))
+
+
+(defn aggregate-flow-efficiency
+  [options args]
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
+    (let [changes (load-state-changes work-items-spec)
+
+          _ (if-not (relational-query-result? changes)
+              (throw (RuntimeException. "Aggregate flow metrics must be performed on a relational query.")))
+
+
+          flow-efficiency (-> changes
+                              core/intervals-in-state
+                              core/aggregate-flow-efficiency)]
       (when (:csv options)
         (csv/write-fn-to-file csv/flow-efficiency
                               flow-efficiency
@@ -210,16 +278,12 @@
 
 (defn lead-time-distribution
   [options args]
-  (let [[cache-or-wiql-file-path] args]
-    (when (nil? cache-or-wiql-file-path)
-      (println "You must specify a path to a cache or wiql file.")
-      (System/exit 1))
-    (when-not (.exists (io/file cache-or-wiql-file-path))
-      (println "File does not exist:" cache-or-wiql-file-path)
-      (throw (RuntimeException. (str "File does not exist:" cache-or-wiql-file-path))))
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
 
-    (let [lead-time-distribution (-> (load-state-changes cache-or-wiql-file-path)
+    (let [lead-time-distribution (-> (load-state-changes work-items-spec)
                                      core/intervals-in-state
+                                     normalize-query-results
                                      core/lead-time-distribution)]
       (if (:chart options)
         (charts/view-lead-time-distribution
@@ -235,9 +299,8 @@
     (when (nil? template-file-path)
       (println "You must specify a path to a wiql template file.")
       (System/exit 1))
-    (when-not (.exists (io/file template-file-path))
-      (println "File does not exist:" template-file-path)
-      (throw (RuntimeException. (str "File does not exist:" template-file-path))))
+
+    (check-file-exists! (io/file template-file-path))
 
     (let [times (core/interesting-times (:historic-queues (cfg/config)))
           as-of (storage/work-items-as-of template-file-path times)
@@ -307,9 +370,9 @@
     (when (nil? batch-file)
       (println "You must specify a path to a batch file in JSON format")
       (System/exit 1))
-    (when-not (.exists (io/file batch-file))
-      (println "File does not exist:" batch-file)
-      (System/exit 1))
+
+    (check-file-exists! (io/file batch-file))
+
     (let [batch-data (json/parse-string (slurp (io/file batch-file)) true)]
 
       (doseq [{:keys [tool args options config] :as op} batch-data]
@@ -354,6 +417,7 @@
         "cycle-time" (cycle-time options (rest arguments))
         "time-in-state" (time-in-state options (rest arguments))
         "flow-efficiency" (flow-efficiency options (rest arguments))
+        "aggregate-flow-efficiency" (aggregate-flow-efficiency options (rest arguments))
         "responsiveness" (responsiveness options (rest arguments))
         "lead-time-distribution" (lead-time-distribution options (rest arguments))
         "historic-queues" (historic-queues options (rest arguments))

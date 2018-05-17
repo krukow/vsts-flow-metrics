@@ -1,0 +1,24 @@
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.AssignedTo],
+    [System.State],
+    [System.Tags]
+FROM workitemLinks
+WHERE
+    (
+        [Source].[System.TeamProject] = @project
+        AND [Source].[System.WorkItemType] = 'Feature'
+        AND [Source].[System.AreaPath] UNDER 'Mobile-Center'
+        AND [Source].[Microsoft.VSTS.Common.ClosedDate] >= @today - 30
+    )
+    AND (
+        [System.Links.LinkType] = 'System.LinkTypes.Hierarchy-Forward'
+    )
+    AND (
+        [Target].[System.TeamProject] = @project
+        AND [Target].[System.WorkItemType] <> ''
+    )
+ORDER BY [System.Id]
+MODE (MustContain)
