@@ -17,7 +17,10 @@
 
 (defn intervals-in-state
   [work-items-changes]
-  (cond (sequential? (first (vals work-items-changes))) ;; flat query
+  (cond (empty? work-items-changes)
+        {}
+
+        (sequential? (first (vals work-items-changes))) ;; flat query
         (map-values work-items/intervals-in-state work-items-changes)
 
         (map? (first (vals work-items-changes))) ;; relational query
