@@ -21,11 +21,13 @@ echo "Running smoke tests"
 
 ./flow-metrics lead-time-distribution cache/sample.json
 
+./flow-metrics aggregate-flow-efficiency cache/sample-relations.json
+
+./flow-metrics batch sample-batch.json
+
 echo "Warning slower commands (uses API)"
 ./flow-metrics historic-queues wiql/features-as-of-template.wiql
 
 ./flow-metrics pull-request-cycle-time
 
 ./flow-metrics pull-request-responsiveness
-
-./flow-metrics batch sample-batch.json
