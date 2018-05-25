@@ -155,9 +155,10 @@ of that work item, and resolve that using the VSTS API."
 
 
 (defn- relational-query-result? [query-result]
-  (if-let [sample (first (vals query-result))]
-    (and (map? sample)
-         (contains? sample :children))))
+  (let [sample (first (vals query-result))]
+    (or (nil? sample) ;; empty query
+        (and (map? sample)
+             (contains? sample :children)))))
 
 (defn- normalize-query-results [query-result]
   (if (relational-query-result? query-result)
