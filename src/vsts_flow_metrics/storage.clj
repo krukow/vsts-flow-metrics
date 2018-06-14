@@ -5,6 +5,7 @@
             [clj-time.core :as t]
             [clj-time.format :as f]
             [cheshire.core :as json]
+            [cheshire.generate :refer [add-encoder encode-str remove-encoder]]
             [vsts-flow-metrics.pull-requests :as pull-requests]))
 
 
@@ -14,6 +15,14 @@
 (defn generate-wiql-as-of [wiql-path interesting-time]
    (format (slurp wiql-path) (f/unparse as-of-format interesting-time)))
 
+
+;; First, add a custom encoder for a class:
+(add-encoder org.joda.time.DateTime
+             (fn [c jsonGenerator]
+               (.writeString jsonGenerator (f/unparse (f/formatters :date-time) c))))
+
+;; There are also helpers for common encoding actions:
+(add-encoder java.net.URL encode-str)
 
 (defn save-work-item-state-changes
   [work-item-state-changes output-path]

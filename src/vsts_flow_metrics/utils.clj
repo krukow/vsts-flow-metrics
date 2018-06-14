@@ -4,9 +4,17 @@
 
 (defn parse-time-stamp
   [date-s]
-  (if (re-matches #"^9999-.+" date-s)
-    (t/now)
-    (try ;:date-time or :date-time-no-ms
-      (f/parse (f/formatters :date-time) date-s)
-      (catch java.lang.IllegalArgumentException e
-        (f/parse (f/formatters :date-time-no-ms) date-s)))))
+  (cond (string? date-s)
+        (if (re-matches #"^9999-.+" date-s)
+          (t/now)
+          (try ;:date-time or :date-time-no-ms
+            (f/parse (f/formatters :date-time) date-s)
+            (catch java.lang.IllegalArgumentException e
+              (f/parse (f/formatters :date-time-no-ms) date-s))))
+
+        (instance? org.joda.time.DateTime date-s)
+        date-s
+
+
+        :else
+        (throw (RuntimeException. (str "Unexpected type for " date-s)))))

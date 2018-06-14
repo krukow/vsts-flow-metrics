@@ -51,6 +51,33 @@
     (str "https://" account-name ".vssps.visualstudio.com"
        "/_apis/graph/groups?api-version=4.1-preview.1")))
 
+;;GET https://{accountName}.vsrm.visualstudio.com/{project}/_apis/release/definitions?api-version=4.1-preview.3
+(defn- release-definitions-url
+  [instance project]
+  (let [instance-name (:name instance)
+        account-name (first (clojure.string/split instance-name #"\."))]
+    (str "https://" account-name ".vsrm.visualstudio.com"
+         "/" project
+         "/_apis/release/definitions?api-version=4.1-preview.3")))
+
+(defn- release-definition-url [instance project id]
+  (let [instance-name (:name instance)
+        account-name (first (clojure.string/split instance-name #"\."))]
+    (str "https://" account-name ".vsrm.visualstudio.com"
+         "/" project
+         "/_apis/release/definitions" "/" id "?api-version=4.1-preview.3")))
+
+;;GET https://{accountName}.vsrm.visualstudio.com/{project}/_apis/release/releases?definitionId={definitionId}&releaseCount={releaseCount}&api-version=4.1-preview.6
+(defn- release-definition-summary-url
+  [instance project definition-id]
+  (let [instance-name (:name instance)
+        account-name (first (clojure.string/split instance-name #"\."))]
+    (str "https://" account-name ".vsrm.visualstudio.com"
+         "/" project
+         "/_apis/release/releases?definitionId=" definition-id
+         "&releaseCount=1"
+         "&api-version=4.1-preview.6")))
+
 ;GET https://{accountName}.visualstudio.com/_apis/projects/{projectId}/teams/{teamId}/members?api-version=4.1
 
 (defn- team-members-url
@@ -134,6 +161,7 @@
        "/pullRequests/" (:pullRequestId pull-request)
        "/iterations"
        "?api-version=4.1"))
+
 
 (defn get-work-items
   ([instance ids]
@@ -244,3 +272,32 @@
   (let [url (pull-request-iterations-url instance project repo pull-request)
         response (client/get url (:http-options instance))]
     (:value (json/parse-string (:body response) true))))
+
+(defn get-release-definitions
+  []
+  (let [instance (cfg/vsts-instance)
+        project (cfg/vsts-project)
+        url (release-definitions-url instance project)
+        response (client/get url (:http-options instance))]
+    (:value (json/parse-string (:body response) true))))
+
+(defn get-release-definition
+  [id]
+  (let [instance (cfg/vsts-instance)
+        project (cfg/vsts-project)
+        url (release-definition-url instance project id)
+        response (client/get url (:http-options instance))]
+    (json/parse-string (:body response) true)))
+
+(defn get-release-definition-summary
+  [id]
+  (let [instance (cfg/vsts-instance)
+        project (cfg/vsts-project)
+        url (release-definition-summary-url instance project id)
+        response (client/get url (:http-options instance))]
+    (json/parse-string (:body response) true)))
+
+(defn get-link [url]
+  (let [instance (cfg/vsts-instance)
+        response (client/get url (:http-options instance))]
+    (json/parse-string (:body response) true)))
