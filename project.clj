@@ -1,4 +1,4 @@
-(defproject vsts-flow-metrics "1.0.9"
+(defproject vsts-flow-metrics "1.0.10-SNAPSHOT"
   :description "Tool for visualizing flow metrics from Visual Studio Team Services data"
   :url "https://github.com/krukow/vsts-flow-metrics"
   :license {:name "MIT"
