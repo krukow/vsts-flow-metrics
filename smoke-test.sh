@@ -4,6 +4,7 @@ set -e
 
 echo "Warning this requires private data: cache/sample.json"
 
+cp ./resources/sample-data.json cache/sample.json
 echo "If you don't have this please generate your own data for smoke tests"
 echo "Running smoke tests"
 

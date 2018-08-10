@@ -62,6 +62,20 @@
   (let [thread-type (get-in upd [:properties :CodeReviewThreadType :$value])]
     (= vote-cast thread-type)))
 
+(defn voter?
+  [reviewer vote]
+  (let [voter-id (get-in vote [:properties
+                               :CodeReviewVotedByTfId
+                               :$value])
+        voter-ref (get-in vote [:properties
+                                :CodeReviewVotedByIdentity
+                                :$value])]
+    (or (= voter-id (:id reviewer))
+        (and voter-ref
+             (= (:id reviewer)
+                (:id
+                 (get (:identities vote) (keyword voter-ref))))))))
+
 (defn reviewers-assigned
   [threads reviewers initial-time]
   (let [is-update? (fn [t]
@@ -177,11 +191,7 @@
         reviewers-assigned-at (reviewers-assigned (:threads pull-req) final-reviewers created-at)
         team-assigned-at (get-in reviewers-assigned-at [(:id team) :added-at])
         responsiveness (fn [r assigned-at votes]
-                         (let [r-votes (filter #(let [voter-id (get-in % [:properties
-                                                                          :CodeReviewVotedByTfId
-                                                                          :$value])]
-                                                  (= voter-id (:id r)))
-                                               votes)]
+                         (let [r-votes (filter #(voter? r %) votes)]
                            (->> r-votes
                                 (map #(let [voted-at (utils/parse-time-stamp (:publishedDate %))]
                                         (assoc %
