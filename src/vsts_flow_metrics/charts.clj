@@ -49,7 +49,6 @@
        (c/view chart))
      chart)))
 
-
 (defn view-time-in-state
   ([times-in-states]
    (view-time-in-state times-in-states (default-chart-options :time-in-state)))

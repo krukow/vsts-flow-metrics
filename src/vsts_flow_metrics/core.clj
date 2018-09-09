@@ -92,6 +92,29 @@
                                                     from-state to-state))
     state-intervals)))
 
+(defn first-queue-time
+  "Computes time spent queued in `state`. If there are multiple occurrences of `state`,
+  `first-queue-time` only considers the time queued the first time in state `state`"
+  ([state-intervals] (first-queue-time state-intervals (:first-queue-time (cfg/config))))
+  ([state-intervals {:keys [state field business-days]}]
+   (let [first-queue-times (map-values
+                            (fn [time-spent-data]
+                              (let [now (t/now)
+                                    empty-int (t/interval now now)
+                                    state-ints (get-in time-spent-data
+                                                       [(keyword field) state]
+                                                       empty-int)
+                                    state-int (if (sequential? state-ints)
+                                                (first state-ints)
+                                                state-ints)
+                                    state-int (if business-days
+                                                (utils/adjust-for-business-time state-int)
+                                                state-int)]
+                                {:interval state-int
+                                 :in-days (/ (t/in-hours state-int) 24.0)
+                                 :in-hours (t/in-hours state-int)}))
+                            state-intervals)])))
+
 (defn lead-time-distribution
   ([state-intervals]
    (lead-time-distribution state-intervals (:lead-time-distribution (cfg/config))))

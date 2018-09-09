@@ -85,6 +85,16 @@
 
             :theme :xchart}}
 
+   :first-queue-time
+   {:state "Escalated"
+    :field :System.State ;;or :System.BoardColumn
+    :chart {:title "Time in queue (first occurrence only)"
+            :category-title "Queue time"
+            :width 1440
+            :height 900
+            :x-axis {:title "Work items"}
+            :y-axis {:title "Time in queue" :decimal-pattern "##.# days"}
+            :theme :xchart}}
 
    :flow-efficiency
    {:active-states ["Active"]
