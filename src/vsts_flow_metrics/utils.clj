@@ -154,4 +154,4 @@
                                         {:current s :res []}
                                         maximal-intervals)]
     (conj (:res business-time-intervals)
-          (t/interval (:current business-time-intervals) e)) ))
+          (t/interval (:current business-time-intervals) e))))

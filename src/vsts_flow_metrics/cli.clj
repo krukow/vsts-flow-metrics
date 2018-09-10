@@ -216,19 +216,18 @@ of that work item, and resolve that using the VSTS API."
                               core/intervals-in-state
                               normalize-query-results
                               core/first-queue-time)]
-      (cond
-        (:csv options)
+      (when (:csv options)
         (csv/write-fn-to-file csv/write-fn-to-file
                               first-queue-times
                               (:csv options)))
-
-        (:chart options)
+      (when (:chart options)
+        ;; note: cycle time graph is deliberately being reused here
         (charts/view-cycle-time (core/map-values :in-days first-queue-times)
-                                      (charts/default-chart-options :first-queue-time)
-                                      (:chart options))
-        :else
-        (print-result
-         (core/map-values :in-days first-queue-times)))))
+                                (charts/default-chart-options :first-queue-time)
+                                (:chart options)))
+      (when (and (nil? (:csv options))
+                 (nil? (:chart options)))
+        (print-result (core/map-values :in-days first-queue-times))))))
 
 
 

@@ -6,8 +6,8 @@
             [clojure.java.io :as io]))
 
 
-(def default-percentiles      [0.25              0.5      0.80              0.90])
-(def default-percentile-names ["25th percentile" "median" "80th percentile" "90th percentile"])
+(def default-percentiles      [0.25              0.5      0.80              0.90              0.95])
+(def default-percentile-names ["25th percentile" "median" "80th percentile" "90th percentile" "95th percentile"])
 
 (defn- percentiles-for-graph
   ([item-names [pct25 median pct80 pct90 :as percentiles]]

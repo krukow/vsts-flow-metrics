@@ -107,13 +107,17 @@
                                     state-int (if (sequential? state-ints)
                                                 (first state-ints)
                                                 state-ints)
-                                    state-int (if business-days
-                                                (utils/adjust-for-business-time state-int)
-                                                state-int)]
-                                {:interval state-int
-                                 :in-days (/ (t/in-hours state-int) 24.0)
-                                 :in-hours (t/in-hours state-int)}))
-                            state-intervals)])))
+                                    state-ints (if business-days
+                                                 (utils/adjust-for-business-time state-int)
+                                                 (list state-int))
+                                    hours (reduce + 0 (map t/in-hours state-ints))
+
+                                    ]
+                                {:intervals state-ints
+                                 :in-days (/ hours 24.0)
+                                 :in-hours hours}))
+                            state-intervals)]
+     first-queue-times)))
 
 (defn lead-time-distribution
   ([state-intervals]
