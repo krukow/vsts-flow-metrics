@@ -215,19 +215,20 @@ of that work item, and resolve that using the VSTS API."
     (let [first-queue-times (-> (load-state-changes work-items-spec)
                               core/intervals-in-state
                               normalize-query-results
-                              core/first-queue-time)]
+                              core/first-queue-time)
+          time-in-days (core/map-values :in-days first-queue-times)]
       (when (:csv options)
-        (csv/write-fn-to-file csv/write-fn-to-file
-                              csv/first-queue-times
+        (csv/write-fn-to-file csv/first-queue-times
+                              time-in-days
                               (:csv options)))
       (when (:chart options)
         ;; note: cycle time graph is deliberately being reused here
-        (charts/view-cycle-time (core/map-values :in-days first-queue-times)
+        (charts/view-cycle-time time-in-days
                                 (charts/default-chart-options :first-queue-time)
                                 (:chart options)))
       (when (and (nil? (:csv options))
                  (nil? (:chart options)))
-        (print-result (core/map-values :in-days first-queue-times))))))
+        (print-result time-in-days)))))
 
 
 
