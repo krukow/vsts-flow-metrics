@@ -77,6 +77,36 @@
                    ]
                   valid-cycle-times)))
 
+(defn first-queue-times
+  [queue-times]
+  (let [valid-times
+        (remove #(nil? (second %)) queue-times)
+        percentiles (istats/quantile (remove #(zero? %) (vals valid-times))
+                                     :probs [0.1 0.2 0.30 0.5 0.80 0.9 0.95])]
+    (project-rows [{:header "Work Item"
+                    :fn (fn [[id val]] (str "#" (name id)))}
+                   {:header "Queue-time"
+                    :fn (fn [[id val]] (float val))}
+                   {:header "Link"
+                    :fn (fn [[id val]] (work-item-link id))}
+
+                   {:header "10th percentile"
+                    :fn (constantly (nth percentiles 0))}
+                   {:header "20th percentile"
+                    :fn (constantly (nth percentiles 1))}
+                   {:header "30th percentile"
+                    :fn (constantly (nth percentiles 2))}
+                   {:header "median"
+                    :fn (constantly (nth percentiles 3))}
+                   {:header "80th percentile"
+                    :fn (constantly (nth percentiles 4))}
+                   {:header "90th percentile"
+                    :fn (constantly (nth percentiles 5))}
+                   {:header "95th percentile"
+                    :fn (constantly (nth percentiles 6))}
+                   ]
+                  valid-times)))
+
 (defn write-fn-to-file
   [f values filename]
   (with-open [writer (io/writer filename)]

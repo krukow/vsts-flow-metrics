@@ -218,7 +218,7 @@ of that work item, and resolve that using the VSTS API."
                               core/first-queue-time)]
       (when (:csv options)
         (csv/write-fn-to-file csv/write-fn-to-file
-                              first-queue-times
+                              csv/first-queue-times
                               (:csv options)))
       (when (:chart options)
         ;; note: cycle time graph is deliberately being reused here
