@@ -30,6 +30,8 @@
 
     time-in-state <spec>              - Times in states for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart.
 
+    first-queue-time <spec>           - Calculates for a set of work-items defined by <spec>, the amount of time queued in a specific state (defined in the config). If a work-items has multiple occurrences of the state, the first occurrence is selected.
+
     flow-efficiency <spec>            - Flow efficiency for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
 
     aggregate-flow-efficiency <spec>  - Aggregate flow efficiency for a set of work-items defined by <spec> (see docs spec semantics). Use the --chart option to save a chart. Or use the --csv <out.csv> to save data to a file in .csv format. Prints JSON format to stdout if no options specified.
@@ -205,6 +207,30 @@ of that work item, and resolve that using the VSTS API."
                                    (:chart options))
         :else
         (print-result times-in-states)))))
+
+(defn first-queue-time [options args]
+  (let [[work-items-spec] args]
+    (validate-work-items-spec! work-items-spec)
+
+    (let [first-queue-times (-> (load-state-changes work-items-spec)
+                              core/intervals-in-state
+                              normalize-query-results
+                              core/first-queue-time)
+          time-in-days (core/map-values :in-days first-queue-times)]
+      (when (:csv options)
+        (csv/write-fn-to-file csv/first-queue-times
+                              time-in-days
+                              (:csv options)))
+      (when (:chart options)
+        ;; note: cycle time graph is deliberately being reused here
+        (charts/view-cycle-time time-in-days
+                                (charts/default-chart-options :first-queue-time)
+                                (:chart options)))
+      (when (and (nil? (:csv options))
+                 (nil? (:chart options)))
+        (print-result time-in-days)))))
+
+
 
 (defn responsiveness
   [options args]
@@ -417,6 +443,7 @@ of that work item, and resolve that using the VSTS API."
         "cache-work-item-changes" (cache-work-item-changes options (rest arguments))
         "cycle-time" (cycle-time options (rest arguments))
         "time-in-state" (time-in-state options (rest arguments))
+        "first-queue-time" (first-queue-time options (rest arguments))
         "flow-efficiency" (flow-efficiency options (rest arguments))
         "aggregate-flow-efficiency" (aggregate-flow-efficiency options (rest arguments))
         "responsiveness" (responsiveness options (rest arguments))
