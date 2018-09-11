@@ -117,7 +117,8 @@
 
 (defn merge-intervals
   [sorted-intervals]
-  (let [merger (fn [{current :current :as acc} interval]
+  (if (seq sorted-intervals)
+    (let [merger (fn [{current :current :as acc} interval]
                  (if-let [o (t/overlap current interval)]
                    (let [s1 (t/start current)
                          e1 (t/end current)
@@ -131,7 +132,9 @@
         merged (reduce merger
                        {:current (first sorted-intervals) :res []}
                        sorted-intervals)]
-    (conj (:res merged) (:current merged))))
+      (conj (:res merged) (:current merged)))
+
+    sorted-intervals))
 
 (defn adjust-for-business-time
   [interval]
@@ -142,6 +145,7 @@
                               (weekends s e))
         sorted-free-time (sort-by t/start (concat free-intervals weekend-overlaps))
         maximal-intervals (merge-intervals sorted-free-time)
+
         business-time-reducer (fn [{s :current :as acc} next-holiday]
                                 (let [sh (t/start next-holiday)
                                       eh (t/end   next-holiday)]
