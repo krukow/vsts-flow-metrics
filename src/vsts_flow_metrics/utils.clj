@@ -106,13 +106,7 @@
 
 (defn vacations-and-holiday-overlap
   [interval]
-  (let [start-at (t/start interval)
-        end-at (t/end interval)
-
-        ;; weekends that overlap with this interval
-        relevant-weekends (weekends start-at (t/plus end-at (t/days 1)))
-        vacation-overlaps (danish-vacation-days-overlap interval)]
-    (remove nil? vacation-overlaps)))
+  (remove nil? (danish-vacation-days-overlap interval)))
 
 
 (defn merge-intervals
