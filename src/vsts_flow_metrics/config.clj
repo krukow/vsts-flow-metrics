@@ -88,6 +88,7 @@
    :first-queue-time
    {:state "Escalated"
     :field :System.State ;;or :System.BoardColumn
+    :business-days true
     :chart {:title "Time in queue (first occurrence only)"
             :category-title "Queue time"
             :width 1440
