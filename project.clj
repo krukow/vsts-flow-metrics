@@ -16,4 +16,4 @@
                  [org.clojure/data.csv "0.1.4"]
                  [clj-time "0.13.0"]]
 
-  :plugins [[cider/cider-nrepl "0.16.0"]])
+  :plugins [[cider/cider-nrepl "0.18.0"]])
