@@ -46,9 +46,9 @@
   The default must have all the keys present."
   [default overrides]
   (letfn [(deep-merge-rec [a b]
-                           (if (map? a)
-                               (merge-with deep-merge-rec a b)
-                               b))]
+            (if (map? a)
+              (merge-with deep-merge-rec a b)
+              b))]
     (reduce deep-merge-rec nil (list default overrides))))
 
 
