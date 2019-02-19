@@ -227,3 +227,12 @@
 (defn vsts-repository
   []
   (:repository (:pull-requests (config))))
+
+(def datomic-config
+  {:server-type :ion
+   :region "eu-west-1" ;; e.g. us-east-1
+   :system "datomic-dev"
+   :endpoint "http://entry.datomic-dev.eu-west-1.datomic.net:8182/"
+   :proxy-port 8182})
+
+(def db-config {:db-name "flow"})

@@ -2,9 +2,14 @@
 
 script_dir=File.dirname(__FILE__)
 flow_metrics_jar="#{script_dir}/flow-metrics.jar"
-flow_metrics_jar="#{script_dir}/target/flow-metrics.jar" unless File.exists? flow_metrics_jar
 
-raise "flow-metrics.jar not found in ./ or target/" unless File.exists? flow_metrics_jar
+unless File.exists?(flow_metrics_jar) || File.symlink?(flow_metrics_jar)
+  flow_metrics_jar="#{script_dir}/target/flow-metrics.jar"
+end
+
+unless File.exists?(flow_metrics_jar) || File.symlink?(flow_metrics_jar)
+  raise "flow-metrics.jar not found in ./ or target/"
+end
 
 if ENV['DEBUG']=='1'
   exec('java', '-Dxtc.env=development', '-Djava.awt.headless=true', '-jar', flow_metrics_jar, *ARGV)

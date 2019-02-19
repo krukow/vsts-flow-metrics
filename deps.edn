@@ -1,0 +1,37 @@
+{:paths ["resources" "src"]
+ :deps {org.clojure/clojure {:mvn/version "1.9.0"}
+        clj-time {:mvn/version "0.14.4"}
+        clj-http {:mvn/version "3.8.0"}
+        cheshire {:mvn/version "5.8.0"}
+        org.clojure/tools.cli {:mvn/version "0.4.1"}
+        com.hypirion/clj-xchart {:mvn/version "0.2.0"}
+        incanter {:mvn/version "1.9.3" :exclusions [com.lowagie/itext]}
+        org.clojure/data.csv {:mvn/version "0.1.4"}
+        com.datomic/client-cloud {:mvn/version "0.8.66"}}
+
+ :aliases
+ {:test {:extra-paths ["test"]
+         :extra-deps {org.clojure/test.check {:mvn/version "0.9.0"}}}
+  :runner
+  {:extra-deps {com.cognitect/test-runner
+                {:git/url "https://github.com/cognitect-labs/test-runner"
+                 :sha "76568540e7f40268ad2b646110f237a60295fa3c"}}
+   :main-opts ["-m" "cognitect.test-runner"
+               "-d" "test"]}
+  :cambada
+  {:extra-deps
+   {luchiniatwork/cambada
+    {:mvn/version "1.0.0"}}}
+
+  :uberjar
+  {:extra-deps
+   {luchiniatwork/cambada {:mvn/version "1.0.0"}}
+   :main-opts ["-m" "cambada.uberjar"
+               "-a" "all"
+               "-m" "vsts-flow-metrics.cli"
+               "--app-version" "1.10.0-SNAPSHOT"]}}
+
+ :mvn/repos {"central" {:url "https://repo1.maven.org/maven2/"}
+             "clojars" {:url "https://repo.clojars.org/"}}
+
+ }

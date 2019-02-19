@@ -9,51 +9,73 @@
             [cheshire.core :as json]))
 
 
+(defn ado-url [instance & args]
+  (let [inst (:name instance)
+        host-url (if (.startsWith inst "https://")
+                   (.substring inst (count "https://"))
+                   inst)
+        normal-host-url (string/join "/"
+                                     (string/split host-url #"/"))]
+
+    (apply str "https://" normal-host-url args)))
+
 (defn- work-items-url
   ([instance ids]
-   (str "https://" (:name instance)
-        "/DefaultCollection/_apis/wit/workitems?api-version=3.0-preview&ids=" (string/join "," ids)
-        "&$expand=relations&ErrorPolicy=omit"))
+   (ado-url instance
+            "/_apis/wit/workitems?api-version=3.0-preview&ids=" (string/join "," ids)
+            "&$expand=relations&ErrorPolicy=omit"))
   ([instance ids as-of]
-   (str "https://" (:name instance)
-        "/DefaultCollection/_apis/wit/workitems?api-version=3.0-preview&ids=" (string/join "," ids)
-        "&asOf=" (f/unparse (f/formatter :date-time) as-of)
-        "&$expand=relations&ErrorPolicy=omit")))
+   (ado-url instance
+            "/1ES/_apis/wit/workitems?api-version=3.0-preview&ids=" (string/join "," ids)
+            "&asOf=" (f/unparse (f/formatter :date-time) as-of)
+            "&$expand=relations&ErrorPolicy=omit")))
 
 (defn- work-item-updates-url [instance id]
-  (str "https://" (:name instance)
-       "/_apis/wit/workitems/" id "/updates?api-version=3.0-preview"))
+  (ado-url instance
+           "/1ES/_apis/wit/workitems/" id "/updates?api-version=3.0-preview"))
 
 
 (defn- wiql-url [instance project]
-  (str "https://" (:name instance)
-       "/DefaultCollection/" project "/_apis/wit/wiql?api-version=3.0-preview"))
+  (ado-url instance
+           "/" project "/_apis/wit/wiql?api-version=3.0-preview"))
 
 
 (defn- repositories-url
   [instance project]
-  (str "https://" (:name instance) "/" project "/_apis/git/repositories?api-version=4.1-preview"))
+  (ado-url instance "/" project "/_apis/git/repositories?api-version=4.1-preview"))
 
 (defn- teams-url
-  ([instance]
-   (str "https://" (:name instance)
-        "/_apis/teams?api-version=4.1-preview.2")))
+  ([instance project-id]
+   (ado-url instance
+            "/_apis/projects/" project-id "/teams?api-version=5.0")))
 
 (defn- team-url
   ([instance project team-name]
-   (str "https://" (:name instance)
-        "/_apis/projects/" project "/teams/" team-name "?api-version=4.1")))
+   (ado-url instance
+            "/_apis/projects/" project "/teams/" team-name "?api-version=4.1")))
 
 
 (defn- groups-url [instance]
   (let [instance-name (:name instance)
-        account-name (first (clojure.string/split instance-name #"\."))]
+        account-name (if (.startsWith instance-name "https://")
+                       (last (clojure.string/split instance-name #"/"))
+                       (first (clojure.string/split instance-name #"\.")))]
     (str "https://" account-name ".vssps.visualstudio.com"
-       "/_apis/graph/groups?api-version=4.1-preview.1")))
+         "/_apis/graph/groups?api-version=5.0-preview.1")))
+
+(defn- group-url [instance descriptor]
+  (let [instance-name (:name instance)
+        account-name (if (.startsWith instance-name "https://")
+                       (last (clojure.string/split instance-name #"/"))
+                       (first (clojure.string/split instance-name #"\.")))]
+    (str "https://" account-name ".vssps.visualstudio.com"
+         "/_apis/graph/groups/" descriptor "/?api-version=5.0-preview.1")))
+
 
 ;;GET https://{accountName}.vsrm.visualstudio.com/{project}/_apis/release/definitions?api-version=4.1-preview.3
 (defn- release-definitions-url
   [instance project]
+  (throw (RuntimeException. "This URL needs to be fixed"))
   (let [instance-name (:name instance)
         account-name (first (clojure.string/split instance-name #"\."))]
     (str "https://" account-name ".vsrm.visualstudio.com"
@@ -78,13 +100,15 @@
          "&releaseCount=1"
          "&api-version=4.1-preview.6")))
 
-;GET https://{accountName}.visualstudio.com/_apis/projects/{projectId}/teams/{teamId}/members?api-version=4.1
+
+
+                                        ;GET https://{accountName}.visualstudio.com/_apis/projects/{projectId}/teams/{teamId}/members?api-version=4.1
 
 (defn- team-members-url
   ([instance project team]
-   (str "https://" (:name instance)
-        "/_apis/projects/" project "/teams/" (:id team) "/members"
-        "?api-version=4.1")))
+   (ado-url instance
+            "/_apis/projects/" project "/teams/" (:id team) "/members"
+            "?api-version=4.1")))
 
 
 ;; GET https://{instance}/DefaultCollection/{project}/{project}/_apis/git/pullRequests?api-version={version}[&status={string}&creatorId={GUID}&reviewerId={GUID}&sourceRefName={string}&targetRefName={string}&$top={integer}&$skip={integer}]
@@ -92,75 +116,77 @@
 ;; GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullrequests?searchCriteria.includeLinks={searchCriteria.includeLinks}&searchCriteria.sourceRefName={searchCriteria.sourceRefName}&searchCriteria.sourceRepositoryId={searchCriteria.sourceRepositoryId}&searchCriteria.targetRefName={searchCriteria.targetRefName}&searchCriteria.status={searchCriteria.status}&searchCriteria.reviewerId={searchCriteria.reviewerId}&searchCriteria.creatorId={searchCriteria.creatorId}&searchCriteria.repositoryId={searchCriteria.repositoryId}&maxCommentLength={maxCommentLength}&$skip={$skip}&$top={$top}&api-version=4.1-preview
 
 (defn- all-pull-requests-url [instance project repo status]
-  (str "https://" (:name instance)
-       "/DefaultCollection/" project "/_apis/git/pullRequests?$top=1000"
-       "&searchCriteria.repositoryId=" (:id repo)
-       "&searchCriteria.status=" status
-       "&api-version=4.1"))
+  (ado-url instance
+           "/" project "/_apis/git/repositories/" (:id repo)
+
+           "/pullRequests?$top=1000"
+           "&searchCriteria.repositoryId="
+           "&searchCriteria.status=" status
+           "&api-version=5.0"))
 
 (defn- team-pull-requests-url [instance project repo pr-status team-id]
-  (str "https://" (:name instance)
-       "/DefaultCollection/" project
-       "/_apis/git/pullRequests?$top=1000"
-       "&searchCriteria.repositoryId=" (:id repo)
-       "&searchCriteria.status=" pr-status
-       "&searchCriteria.reviewerId=" team-id
-       "&api-version=4.1"))
+  (ado-url instance
+           "/" project "/_apis/git/repositories/" (:id repo)
+           "/pullRequests?$top=1000"
+           "&searchCriteria.repositoryId="
+           "&searchCriteria.status=" pr-status
+           "&searchCriteria.reviewerId=" team-id
+           "&api-version=5.0"))
 
 
-;GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullrequests/{pullRequestId}?api-version=4.1
+                                        ;GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullrequests/{pullRequestId}?api-version=4.1
 (defn- pull-request-by-id-url
   [instance project repo pull-request-id]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" pull-request-id
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" pull-request-id
+           "?api-version=4.1"))
 
 ;; GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/commits?api-version=4.1-preview
 (defn- pull-request-commits-url
   [instance project repo pull-request]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" (:pullRequestId pull-request) "/commits"
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" (:pullRequestId pull-request) "/commits"
+           "?api-version=4.1"))
 
-;GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/workitems?api-version=4.1-preview
+                                        ;GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/workitems?api-version=4.1-preview
 (defn- pull-requests-work-items-url
   [instance project repo pull-request]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" (:pullRequestId pull-request) "/workitems"
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" (:pullRequestId pull-request) "/workitems"
+           "?api-version=4.1"))
 
 (defn pull-request-threads-url
   [instance project repo pull-request]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" (:pullRequestId pull-request)
-       "/threads"
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" (:pullRequestId pull-request)
+           "/threads"
+           "?api-version=4.1"))
 
 
 ;; GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/reviewers?api-version=4.1-preview
 
 (defn pull-request-reviewers-url
   [instance project repo pull-request]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" (:pullRequestId pull-request)
-       "/reviewers"
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" (:pullRequestId pull-request)
+           "/reviewers"
+           "?api-version=4.1"))
 
 
 
 ;;GET https://{accountName}.visualstudio.com/{project}/_apis/git/repositories/{repositoryId}/pullRequests/{pullRequestId}/iterations?includeCommits={includeCommits}&api-version=4.1
 (defn pull-request-iterations-url
   [instance project repo pull-request]
-  (str "https://" (:name instance) "/" project
-       "/_apis/git/repositories/" (:id repo)
-       "/pullRequests/" (:pullRequestId pull-request)
-       "/iterations"
-       "?api-version=4.1"))
+  (ado-url instance "/" project
+           "/_apis/git/repositories/" (:id repo)
+           "/pullRequests/" (:pullRequestId pull-request)
+           "/iterations"
+           "?api-version=4.1"))
 
 
 (defn get-work-items

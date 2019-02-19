@@ -345,12 +345,11 @@ of that work item, and resolve that using the VSTS API."
         closed-after (f/parse (f/formatter :date) closed-after-s)
         configured-team-name (get-in (cfg/config) [:pull-requests :team-name])
         pr-unit (keyword (get-in (cfg/config) [:pull-request-cycle-time :cycle-time-unit]))
-        team (if configured-team-name
-               (api/get-team-by-name (cfg/vsts-instance) (cfg/vsts-project) configured-team-name))
+
         repo (api/get-repository-by-name (cfg/vsts-instance) (cfg/vsts-project)
                                          (get-in (cfg/config) [:pull-requests :repository]))
 
-        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" team)
+        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" configured-team-name)
         filtered-prs (filter #(t/after? (:closedDate %) closed-after) pull-requests)
         pr-cycle-time (core/pull-requests-cycle-time filtered-prs)]
 
@@ -370,16 +369,15 @@ of that work item, and resolve that using the VSTS API."
         closed-after (f/parse (f/formatter :date) closed-after-s)
         configured-team-name (get-in (cfg/config) [:pull-requests :team-name])
         pr-unit (keyword (get-in (cfg/config) [:pull-request-responsiveness :responsiveness-time-unit]))
-        team (if configured-team-name
-               (api/get-team-by-name (cfg/vsts-instance) (cfg/vsts-project) configured-team-name))
+
         repo (api/get-repository-by-name (cfg/vsts-instance) (cfg/vsts-project)
                                          (get-in (cfg/config) [:pull-requests :repository]))
 
-        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" team)
-        active-pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "active" team)
+        pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "completed" configured-team-name)
+        active-pull-requests (api/get-pull-requests (cfg/vsts-instance) (cfg/vsts-project) repo "active" configured-team-name)
         filtered-prs (concat (filter #(t/after? (:closedDate %) closed-after) pull-requests)
                              active-pull-requests)
-        pr-responsiveness (core/pull-requests-first-vote-responsiveness filtered-prs team)]
+        pr-responsiveness (core/pull-requests-first-vote-responsiveness filtered-prs configured-team-name)]
 
     (when-not (contains? #{:days :hours :mins} pr-unit)
       (throw (RuntimeException. "Configuration :pull-request-responsiveness :responsiveness-time-unit must be days, hours or mins")))

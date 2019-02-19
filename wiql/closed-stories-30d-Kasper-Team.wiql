@@ -13,9 +13,9 @@ SELECT
 FROM workitems
 WHERE
         [System.TeamProject] = @project
-        AND [System.AreaPath] UNDER "Mobile-Center\Kasper-Team"
+        AND [System.AreaPath] UNDER "1ES\Lighthouse"
         AND [System.WorkItemType] IN ("User Story")
-        AND [Microsoft.VSTS.Common.ClosedDate] >= @Today - 30
+        AND [Microsoft.VSTS.Common.ClosedDate] >= "2018/11/01"
         AND [System.State] IN ("Closed")
 
 ORDER BY [System.ChangedDate] DESC

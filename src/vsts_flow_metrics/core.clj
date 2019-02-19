@@ -35,8 +35,10 @@
         (throw (RuntimeException. (str "Unexpected format for work-item-changes: " (first (vals work-items-changes)))))))
 
 (defn cycle-times
-  "Computes cycle time in days (defined as hours / 24.0) for a set of work items with state intervals.
-  Cycle time is time from first in `from-state` to last in `to-state`. If called without from-state and to-state,
+  "Computes cycle time in days (defined as cycle-time-minutes / (24 * 60.0)) for
+  a set of work items with state intervals.
+  Cycle time is time from first in `from-state` to last in `to-state`.
+  If called without from-state and to-state,
   defaults to the configuration :cycle-time :from-state / :to-state."
   ([state-intervals]
    (cycle-times state-intervals (:cycle-time (cfg/config))))
@@ -45,8 +47,8 @@
     (fn [intervals]
       (let [cycle-time (work-items/cycle-time (get intervals (keyword field))
                                               from-state to-state)]
-        (if-let [cycle-time-hours (:hours cycle-time)]
-          (/ cycle-time-hours 24.0))))
+        (if-let [cycle-time-int (:interval cycle-time)]
+          (/ (t/in-minutes cycle-time-int) (* 24 60.0)))))
     state-intervals)))
 
 (defn days-spent-in-state
